@@ -26,18 +26,38 @@ class DatatableResponse extends AbstractDatatableResponse
 
     /**
      * @param PaginatedFinderInterface $paginatedFinder
+     *
+     * @return DatatableResponse
      */
-    public function setPaginatedFinder(PaginatedFinderInterface $paginatedFinder)
+    public function setPaginatedFinder(PaginatedFinderInterface $paginatedFinder): self
     {
         $this->paginatedFinder = $paginatedFinder;
+
+        return $this;
+    }
+
+    /**
+     * @param string $datatableQueryBuilderClass
+     *
+     * @return DatatableResponse
+     */
+    public function setDatatableQueryBuilderClass(string $datatableQueryBuilderClass): self
+    {
+        $this->datatableQueryBuilderClass = $datatableQueryBuilderClass;
+
+        return $this;
     }
 
     /**
      * @param ModelDefinitionInterface $modelDefinition
+     *
+     * @return DatatableResponse
      */
-    public function setModelDefinition(ModelDefinitionInterface $modelDefinition)
+    public function setModelDefinition(ModelDefinitionInterface $modelDefinition): self
     {
         $this->modelDefinition = $modelDefinition;
+
+        return $this;
     }
 
     /**
@@ -45,7 +65,7 @@ class DatatableResponse extends AbstractDatatableResponse
      *
      * @return DatatableResponse
      */
-    public function setCountAllResults(bool $countAllResults): DatatableResponse
+    public function setCountAllResults(bool $countAllResults): self
     {
         $this->countAllResults = $countAllResults;
 
@@ -102,7 +122,6 @@ class DatatableResponse extends AbstractDatatableResponse
 
         return $response;
     }
-
 
     /**
      * @return DatatableQueryBuilder
