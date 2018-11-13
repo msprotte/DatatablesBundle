@@ -86,7 +86,14 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $currentPart = $this->entityShortName;
             $currentAlias = $currentPart;
             $metadata = $this->metadata;
-
+            $sqlReservedWords = [
+                'select',
+                'from',
+                'join',
+                'where',
+                'order',
+                'group',
+            ];
             if (true === $this->accessor->getValue($column, 'customDql')) {
                 $columnAlias = str_replace('.', '_', $data);
                 $selectDql = preg_replace('/\{([\w]+)\}/', '$1', $dql);
@@ -102,7 +109,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $previousAlias = $currentAlias;
 
                     $currentPart = array_shift($parts);
-                    $currentAlias = ($previousPart === $this->entityShortName ? '' : $previousPart . '_') . $currentPart;
+                    $currentAlias = ($previousPart == $this->entityShortName ? '' : $previousPart.'_') . ($currentPart == in_array($currentPart, $sqlReservedWords) ? $currentPart[0] : $currentPart);
 
                     if (!array_key_exists($previousAlias . '.' . $currentPart, $this->joins)) {
                         $this->addJoin(
@@ -280,6 +287,9 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
             foreach ($this->columns as $key => $column) {
                 if (true === $this->isSearchableColumn($column)) {
+                    if (false === array_key_exists('columns', $this->requestParams)) {
+                        continue;
+                    }
                     if (false === array_key_exists($key, $this->requestParams['columns'])) {
                         continue;
                     }
