@@ -13,7 +13,6 @@ namespace Sg\DatatablesBundle\Response\Doctrine;
 
 use Sg\DatatablesBundle\Datatable\DatatableInterface;
 use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
-use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 use Sg\DatatablesBundle\Response\AbstractDatatableResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,8 +21,6 @@ use Doctrine\ORM\Tools\Pagination\Paginator;
 class DatatableResponse extends AbstractDatatableResponse
 {
     /**
-     * The current Request.
-     *
      * @var Request
      */
     protected $request;
@@ -114,15 +111,6 @@ class DatatableResponse extends AbstractDatatableResponse
         $this->datatableQueryBuilder = null;
 
         return $this;
-    }
-
-    /**
-     * @return AbstractDatatableQueryBuilder
-     * @throws \Exception
-     */
-    public function getDatatableQueryBuilder()
-    {
-        return $this->datatableQueryBuilder ?: $this->createDatatableQueryBuilder();
     }
 
     public function resetResponseOptions()

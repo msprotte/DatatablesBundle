@@ -12,7 +12,7 @@ use Sg\DatatablesBundle\Datatable\Column\TextColumn;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 
-abstract class ElasticaDatatableQueryBuilder extends AbstractDatatableQueryBuilder
+abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 {
     /** @var PaginatedFinderInterface */
     protected $paginatedFinder;
@@ -151,8 +151,8 @@ abstract class ElasticaDatatableQueryBuilder extends AbstractDatatableQueryBuild
      */
     protected function setOrderBy(Query $query)
     {
-        if (isset($this->requestParams['order']) && count($this->requestParams['order'])) {
-            $counter = count($this->requestParams['order']);
+        if (isset($this->requestParams['order']) && \count($this->requestParams['order'])) {
+            $counter = \count($this->requestParams['order']);
 
             for ($i = 0; $i < $counter; $i++) {
                 $columnIdx = (int)$this->requestParams['order'][$i]['column'];

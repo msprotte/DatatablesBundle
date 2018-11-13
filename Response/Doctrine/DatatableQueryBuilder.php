@@ -180,7 +180,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    public function setQb($qb)
+    public function setQb($qb): self
     {
         $this->qb = $qb;
 
@@ -191,7 +191,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @return QueryBuilder
      * @throws Exception
      */
-    public function getBuiltQb()
+    public function getBuiltQb(): QueryBuilder
     {
         $qb = clone $this->qb;
 
@@ -204,18 +204,12 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         return $qb;
     }
 
-    //-------------------------------------------------
-    // protected/Public - Setup query
-    //-------------------------------------------------
-
     /**
-     * Set select from.
-     *
      * @param QueryBuilder $qb
      *
      * @return $this
      */
-    protected function setSelectFrom(QueryBuilder $qb)
+    protected function setSelectFrom(QueryBuilder $qb): self
     {
         foreach ($this->selectColumns as $key => $value) {
             if (false === empty($key)) {
@@ -229,13 +223,11 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Set joins.
-     *
      * @param QueryBuilder $qb
      *
      * @return $this
      */
-    protected function setJoins(QueryBuilder $qb)
+    protected function setJoins(QueryBuilder $qb): self
     {
         foreach ($this->joins as $key => $value) {
             $qb->{$value['type']}($key, $value['alias']);
@@ -245,16 +237,12 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Searching / Filtering.
-     * Construct the WHERE clause for server-side processing SQL query.
-     *
      * @param QueryBuilder $qb
      *
      * @return $this
      */
-    protected function setWhere(QueryBuilder $qb)
+    protected function setWhere(QueryBuilder $qb): self
     {
-        // global filtering
         if (isset($this->requestParams['search']) && '' != $this->requestParams['search']['value']) {
             $orExpr = $qb->expr()->orX();
 
@@ -269,8 +257,15 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $searchField = $this->searchColumns[$key];
                     $searchValue = $globalSearch;
                     $searchTypeOfField = $column->getTypeOfField();
-                    $orExpr = $filter->addOrExpression($orExpr, $qb, $searchType, $searchField, $searchValue,
-                        $searchTypeOfField, $key);
+                    $orExpr = $filter->addOrExpression(
+                        $orExpr,
+                        $qb,
+                        $searchType,
+                        $searchField,
+                        $searchValue,
+                        $searchTypeOfField,
+                        $key
+                    );
                 }
             }
 
@@ -296,13 +291,19 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
                     $searchValue = $this->requestParams['columns'][$key]['search']['value'];
 
-                    if ('' != $searchValue && 'null' != $searchValue) {
+                    if ('' !== $searchValue && 'null' !== $searchValue) {
                         /** @var FilterInterface $filter */
                         $filter = $this->accessor->getValue($column, 'filter');
                         $searchField = $this->searchColumns[$key];
                         $searchTypeOfField = $column->getTypeOfField();
-                        $andExpr = $filter->addAndExpression($andExpr, $qb, $searchField, $searchValue,
-                            $searchTypeOfField, $parameterCounter);
+                        $andExpr = $filter->addAndExpression(
+                            $andExpr,
+                            $qb,
+                            $searchField,
+                            $searchValue,
+                            $searchTypeOfField,
+                            $parameterCounter
+                        );
                     }
                 }
             }
@@ -316,14 +317,11 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Ordering.
-     * Construct the ORDER BY clause for server-side processing SQL query.
-     *
      * @param QueryBuilder $qb
      *
      * @return $this
      */
-    protected function setOrderBy(QueryBuilder $qb)
+    protected function setOrderBy(QueryBuilder $qb): self
     {
         if (isset($this->requestParams['order']) && count($this->requestParams['order'])) {
             $counter = count($this->requestParams['order']);
@@ -332,7 +330,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 $columnIdx = (int)$this->requestParams['order'][$i]['column'];
                 $requestColumn = $this->requestParams['columns'][$columnIdx];
 
-                if ('true' == $requestColumn['orderable']) {
+                if ('true' === $requestColumn['orderable']) {
                     $columnName = $this->orderColumns[$columnIdx];
                     $orderDirection = $this->requestParams['order'][$i]['dir'];
 
@@ -345,15 +343,12 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Paging.
-     * Construct the LIMIT clause for server-side processing SQL query.
-     *
      * @param QueryBuilder $qb
      *
      * @return $this
      * @throws Exception
      */
-    protected function setLimit(QueryBuilder $qb)
+    protected function setLimit(QueryBuilder $qb): self
     {
         if (true === $this->features->getPaging() || null === $this->features->getPaging()) {
             if (isset($this->requestParams['start']) && DatatableQueryBuilder::DISABLE_PAGINATION != $this->requestParams['length']) {
@@ -367,17 +362,16 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Constructs a Query instance.
-     *
      * @return Query
+     * @throws Exception
      */
-    public function execute()
+    public function execute(): Query
     {
         $qb = $this->getBuiltQb();
 
         $query = $qb->getQuery();
         $query->setHydrationMode(Query::HYDRATE_ARRAY)->useQueryCache($this->useQueryCache);
-        call_user_func_array([$query, 'useResultCache'], $this->useResultCacheArgs);
+        \call_user_func_array([$query, 'useResultCache'], $this->useResultCacheArgs);
 
         return $query;
     }
@@ -395,21 +389,19 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
         $query = $qb->getQuery();
         $query->useQueryCache($this->useCountQueryCache);
-        call_user_func_array([$query, 'useResultCache'], $this->useCountResultCacheArgs);
+        \call_user_func_array([$query, 'useResultCache'], $this->useCountResultCacheArgs);
 
         return !$qb->getDQLPart('groupBy')
             ? (int)$query->getSingleScalarResult()
-            : count($query->getResult());
+            : \count($query->getResult());
     }
 
     /**
-     * Defines whether query used for records retrieval should use query cache if available.
-     *
      * @param bool $bool
      *
      * @return $this
      */
-    public function useQueryCache($bool)
+    public function useQueryCache($bool): self
     {
         $this->useQueryCache = $bool;
 
@@ -417,13 +409,11 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Defines whether query used for counting records should use query cache if available.
-     *
      * @param bool $bool
      *
      * @return $this
      */
-    public function useCountQueryCache($bool)
+    public function useCountQueryCache($bool): self
     {
         $this->useCountQueryCache = $bool;
 
@@ -440,7 +430,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    public function useResultCache($bool, $lifetime = null, $resultCacheId = null)
+    public function useResultCache($bool, $lifetime = null, $resultCacheId = null): self
     {
         $this->useResultCacheArgs = func_get_args();
 
@@ -457,7 +447,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    public function useCountResultCache($bool, $lifetime = null, $resultCacheId = null)
+    public function useCountResultCache($bool, $lifetime = null, $resultCacheId = null): self
     {
         $this->useCountResultCacheArgs = func_get_args();
 
@@ -474,7 +464,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @return ClassMetadata
      * @throws Exception
      */
-    protected function setIdentifierFromAssociation($association, $key, $metadata = null)
+    protected function setIdentifierFromAssociation($association, $key, $metadata = null): ClassMetadata
     {
         if (null === $metadata) {
             $metadata = $this->metadata;
@@ -493,7 +483,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    protected function addSelectColumn($columnTableName, $data)
+    protected function addSelectColumn($columnTableName, $data): self
     {
         if (isset($this->selectColumns[$columnTableName])) {
             if (!in_array($data, $this->selectColumns[$columnTableName])) {
@@ -513,27 +503,27 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    protected function addOrderColumn($column, $columnTableName, $data)
+    protected function addOrderColumn($column, $columnTableName, $data): self
     {
-        true === $this->accessor->getValue($column,
-            'orderable') ? $this->orderColumns[] = ($columnTableName ? $columnTableName . '.' : '') . $data : $this->orderColumns[] = null;
+        true === $this->accessor->getValue($column, 'orderable') ?
+            $this->orderColumns[] = ($columnTableName ? $columnTableName . '.' : '') . $data :
+            $this->orderColumns[] = null;
 
         return $this;
     }
 
     /**
-     * Add search column.
-     *
      * @param object $column
      * @param string $columnTableName
      * @param string $data
      *
      * @return $this
      */
-    protected function addSearchColumn($column, $columnTableName, $data)
+    protected function addSearchColumn($column, $columnTableName, $data): self
     {
-        true === $this->accessor->getValue($column,
-            'searchable') ? $this->searchColumns[] = ($columnTableName ? $columnTableName . '.' : '') . $data : $this->searchColumns[] = null;
+        true === $this->accessor->getValue($column, 'searchable') ?
+            $this->searchColumns[] = ($columnTableName ? $columnTableName . '.' : '') . $data :
+            $this->searchColumns[] = null;
 
         return $this;
     }
@@ -547,7 +537,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    protected function addSearchOrderColumn($column, $columnTableName, $data)
+    protected function addSearchOrderColumn($column, $columnTableName, $data): self
     {
         $this->addOrderColumn($column, $columnTableName, $data);
         $this->addSearchColumn($column, $columnTableName, $data);
@@ -564,7 +554,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return $this
      */
-    protected function addJoin($columnTableName, $alias, $type)
+    protected function addJoin($columnTableName, $alias, $type): self
     {
         $this->joins[$columnTableName] = [
             'alias' => $alias,
@@ -580,7 +570,7 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @return ClassMetadata
      * @throws Exception
      */
-    protected function getMetadata($entityName)
+    protected function getMetadata($entityName): ClassMetadata
     {
         try {
             $metadata = $this->em->getMetadataFactory()->getMetadataFor($entityName);
@@ -622,13 +612,11 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * Is searchable column.
-     *
      * @param ColumnInterface $column
      *
      * @return bool
      */
-    protected function isSearchableColumn(ColumnInterface $column)
+    protected function isSearchableColumn(ColumnInterface $column): bool
     {
         $searchColumn = null !== $this->accessor->getValue($column,
                 'dql') && true === $this->accessor->getValue($column, 'searchable');

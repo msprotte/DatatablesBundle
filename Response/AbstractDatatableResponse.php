@@ -48,11 +48,6 @@ abstract class AbstractDatatableResponse
     }
 
     /**
-     * @return DatatableQueryBuilder
-     */
-    abstract public function getDatatableQueryBuilder();
-
-    /**
      * @return JsonResponse
      * @throws \Exception
      */
@@ -88,6 +83,15 @@ abstract class AbstractDatatableResponse
         if (null === $this->datatableQueryBuilder) {
             throw new \UnexpectedValueException('DatatableResponse::getResponse(): A DatatableQueryBuilder instance is needed. Call getDatatableQueryBuilder().');
         }
+    }
+
+    /**
+     * @return AbstractDatatableQueryBuilder
+     * @throws \Exception
+     */
+    public function getDatatableQueryBuilder(): AbstractDatatableQueryBuilder
+    {
+        return $this->datatableQueryBuilder ?: $this->createDatatableQueryBuilder();
     }
 
     /**

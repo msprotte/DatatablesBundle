@@ -103,17 +103,9 @@ class DatatableResponse extends AbstractDatatableResponse
         return $response;
     }
 
-    /**
-     * @return ElasticaDatatableQueryBuilder
-     * @throws \Exception
-     */
-    public function getDatatableQueryBuilder(): AbstractDatatableQueryBuilder
-    {
-        return $this->datatableQueryBuilder ?: $this->createDatatableQueryBuilder();
-    }
 
     /**
-     * @return ElasticaDatatableQueryBuilder
+     * @return DatatableQueryBuilder
      * @throws \Exception
      */
     protected function createDatatableQueryBuilder(): AbstractDatatableQueryBuilder
