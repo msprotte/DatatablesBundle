@@ -1,7 +1,7 @@
 {
     "name": "sg/datatablesbundle",
     "type": "symfony-bundle",
-    "description": "Symfony Datatable Bundle For Doctrine2 Entities",
+    "description": "Symfony Datatable Bundle For Doctrine2 Entities with additional Elasticsearch functionality",
     "keywords": ["symfony3", "datatable", "datatables", "data-table", "grid", "table", "datagrid", "pagination"],
     "homepage": "https://github.com/stwe/DatatablesBundle",
     "license": "MIT",
