@@ -53,6 +53,14 @@ abstract class AbstractDatatableResponse
     abstract public function getDatatableQueryBuilder();
 
     /**
+     * @return JsonResponse
+     * @throws \Exception
+     */
+    abstract public function getJsonResponse(): JsonResponse;
+
+    abstract public function resetResponseOptions();
+
+    /**
      * @param DatatableInterface $datatable
      *
      * @return AbstractDatatableResponse
@@ -71,11 +79,6 @@ abstract class AbstractDatatableResponse
         return $this;
     }
 
-    /**
-     * @return JsonResponse
-     */
-    abstract public function getJsonResponse(): JsonResponse;
-
     protected function checkResponseDependencies()
     {
         if (null === $this->datatable) {
@@ -87,13 +90,7 @@ abstract class AbstractDatatableResponse
         }
     }
 
-    //-------------------------------------------------
-    // protected
-    //-------------------------------------------------
-
     /**
-     * Create a new DatatableQueryBuilder instance.
-     *
      * @return DatatableQueryBuilder
      * @throws \Exception
      */

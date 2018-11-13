@@ -15,6 +15,7 @@ use \Sg\DatatablesBundle\Response\Doctrine\DatatableResponse as DoctrineDatatabl
 
 /**
  * @deprecated
+ * this class is moved to the subdirectory doctrine and should not be used anymore
  */
 class DatatableResponse extends DoctrineDatatableResponse
 {

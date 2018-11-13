@@ -89,13 +89,9 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
             if (true === $this->accessor->getValue($column, 'customDql')) {
                 $columnAlias = str_replace('.', '_', $data);
-
-                // Select
                 $selectDql = preg_replace('/\{([\w]+)\}/', '$1', $dql);
                 $this->addSelectColumn(null, $selectDql . ' ' . $columnAlias);
-                // Order on alias column name
                 $this->addOrderColumn($column, null, $columnAlias);
-                // Fix subqueries alias duplication
                 $searchDql = preg_replace('/\{([\w]+)\}/', '$1_search', $dql);
                 $this->addSearchColumn($column, null, $searchDql);
             } elseif (true === $this->accessor->getValue($column, 'selectColumn')) {
@@ -109,8 +105,11 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $currentAlias = ($previousPart === $this->entityShortName ? '' : $previousPart . '_') . $currentPart;
 
                     if (!array_key_exists($previousAlias . '.' . $currentPart, $this->joins)) {
-                        $this->addJoin($previousAlias . '.' . $currentPart, $currentAlias,
-                            $this->accessor->getValue($column, 'joinType'));
+                        $this->addJoin(
+                            $previousAlias . '.' . $currentPart,
+                            $currentAlias,
+                            $this->accessor->getValue($column, 'joinType')
+                        );
                     }
 
                     $metadata = $this->setIdentifierFromAssociation($currentAlias, $currentPart, $metadata);
@@ -120,12 +119,12 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 $this->addSelectColumn($currentAlias, $parts[0]);
                 $this->addSearchOrderColumn($column, $currentAlias, $parts[0]);
             } else {
-                // Add Order-Field for VirtualColumn
-                if ($this->accessor->isReadable($column, 'orderColumn') && true === $this->accessor->getValue($column,
-                        'orderable')) {
+                if (
+                    $this->accessor->isReadable($column, 'orderColumn') &&
+                    true === $this->accessor->getValue($column, 'orderable')
+                ) {
                     $orderColumn = $this->accessor->getValue($column, 'orderColumn');
-                    $orderParts = explode('.', $orderColumn);
-                    if (count($orderParts) < 2) {
+                    if ((substr_count($orderColumn, '.') + 1) < 2) {
                         $orderColumn = $this->entityShortName . '.' . $orderColumn;
                     }
                     $this->orderColumns[] = $orderColumn;
@@ -133,12 +132,12 @@ class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $this->orderColumns[] = null;
                 }
 
-                // Add Search-Field for VirtualColumn
-                if ($this->accessor->isReadable($column, 'searchColumn') && true === $this->accessor->getValue($column,
-                        'searchable')) {
+                if (
+                    $this->accessor->isReadable($column, 'searchColumn') &&
+                    true === $this->accessor->getValue($column, 'searchable')
+                ) {
                     $searchColumn = $this->accessor->getValue($column, 'searchColumn');
-                    $searchParts = explode('.', $searchColumn);
-                    if (count($searchParts) < 2) {
+                    if ((substr_count($searchColumn, '.') + 1) < 2) {
                         $searchColumn = $this->entityShortName . '.' . $searchColumn;
                     }
                     $this->searchColumns[] = $searchColumn;

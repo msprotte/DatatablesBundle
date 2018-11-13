@@ -144,7 +144,7 @@ abstract class AbstractDatatableQueryBuilder
      *
      * @return bool
      */
-    protected function isSearchableColumn(ColumnInterface $column)
+    protected function isSearchableColumn(ColumnInterface $column): bool
     {
         $searchColumn = null !== $this->accessor->getValue($column,
                 'dql') && true === $this->accessor->getValue($column, 'searchable');

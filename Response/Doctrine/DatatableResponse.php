@@ -13,8 +13,8 @@ namespace Sg\DatatablesBundle\Response\Doctrine;
 
 use Sg\DatatablesBundle\Datatable\DatatableInterface;
 use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
+use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 use Sg\DatatablesBundle\Response\AbstractDatatableResponse;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Doctrine\ORM\Tools\Pagination\Paginator;
@@ -103,7 +103,7 @@ class DatatableResponse extends AbstractDatatableResponse
      * @return $this
      * @throws \Exception
      */
-    public function setDatatable(DatatableInterface $datatable)
+    public function setDatatable(DatatableInterface $datatable): AbstractDatatableResponse
     {
         $val = $this->validateColumnsPositions($datatable);
         if (is_int($val)) {
@@ -117,22 +117,22 @@ class DatatableResponse extends AbstractDatatableResponse
     }
 
     /**
-     * Get DatatableQueryBuilder instance.
-     *
-     * @return DatatableQueryBuilder
+     * @return AbstractDatatableQueryBuilder
+     * @throws \Exception
      */
     public function getDatatableQueryBuilder()
     {
         return $this->datatableQueryBuilder ?: $this->createDatatableQueryBuilder();
     }
 
-    //-------------------------------------------------
-    // Response
-    //-------------------------------------------------
+    public function resetResponseOptions()
+    {
+        $this->countAllResults = true;
+        $this->outputWalkers = false;
+        $this->fetchJoinCollection = true;
+    }
 
     /**
-     * Get response.
-     *
      * @param bool $countAllResults
      * @param bool $outputWalkers
      * @param bool $fetchJoinCollection
@@ -142,16 +142,20 @@ class DatatableResponse extends AbstractDatatableResponse
      */
     public function getResponse($countAllResults = true, $outputWalkers = false, $fetchJoinCollection = true)
     {
-        if (null === $this->datatable) {
-            throw new \Exception('DatatableResponse::getResponse(): Set a Datatable class with setDatatable().');
-        }
+        $this->countAllResults = $countAllResults;
+        $this->outputWalkers = $outputWalkers;
+        $this->fetchJoinCollection = $fetchJoinCollection;
 
-        if (null === $this->datatableQueryBuilder) {
-            throw new \Exception('DatatableResponse::getResponse(): A DatatableQueryBuilder instance is needed. Call getDatatableQueryBuilder().');
-        }
+        return $this->getJsonResponse();
+    }
 
-        $paginator = new Paginator($this->datatableQueryBuilder->execute(), $fetchJoinCollection);
-        $paginator->setUseOutputWalkers($outputWalkers);
+    /**
+     * @inheritdoc
+     */
+    public function getJsonResponse(): JsonResponse
+    {
+        $paginator = new Paginator($this->datatableQueryBuilder->execute(), $this->fetchJoinCollection);
+        $paginator->setUseOutputWalkers($this->outputWalkers);
 
         $formatter = new DatatableFormatter();
         $formatter->runFormatter($paginator, $this->datatable);
@@ -159,19 +163,16 @@ class DatatableResponse extends AbstractDatatableResponse
         $outputHeader = [
             'draw' => (int)$this->requestParams['draw'],
             'recordsFiltered' => count($paginator),
-            'recordsTotal' => true === $countAllResults ? (int)$this->datatableQueryBuilder->getCountAllResults() : 0,
+            'recordsTotal' => true === $this->countAllResults ? (int)$this->datatableQueryBuilder->getCountAllResults() : 0,
         ];
 
-        return new JsonResponse(array_merge($outputHeader, $formatter->getOutput()));
+        $response = new JsonResponse(array_merge($outputHeader, $formatter->getOutput()));
+        $this->resetResponseOptions();
+
+        return $response;
     }
 
-    //-------------------------------------------------
-    // protected
-    //-------------------------------------------------
-
     /**
-     * Create a new DatatableQueryBuilder instance.
-     *
      * @return DatatableQueryBuilder
      * @throws \Exception
      */
@@ -188,8 +189,6 @@ class DatatableResponse extends AbstractDatatableResponse
     }
 
     /**
-     * Get request params.
-     *
      * @return array
      */
     protected function getRequestParams()
@@ -209,8 +208,6 @@ class DatatableResponse extends AbstractDatatableResponse
     }
 
     /**
-     * Checks Column positions.
-     *
      * @param DatatableInterface $datatable
      *
      * @return int|bool

@@ -16,8 +16,18 @@ services:
             - '@doctrine.orm.entity_manager'
             - '@twig'
 
-    sg_datatables.response:
-        class: Sg\DatatablesBundle\Response\DatatableResponse
+    sg_datatables.response: #DEPRECATED
+        class: Sg\DatatablesBundle\Response\Doctrine\DatatableResponse
+        parent: sg_datatables.response.doctrine
+
+    sg_datatables.response.doctrine:
+        class: Sg\DatatablesBundle\Response\Doctrine\DatatableResponse
+        public: true
+        arguments:
+            - '@request_stack'
+
+    sg_datatables.response.elastica:
+        class: Sg\DatatablesBundle\Response\Elastica\DatatableResponse
         public: true
         arguments:
             - '@request_stack'

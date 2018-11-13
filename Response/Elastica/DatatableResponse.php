@@ -11,10 +11,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 class DatatableResponse extends AbstractDatatableResponse
 {
+    /** @var AbstractDatatableQueryBuilder $datatableQueryBuilder */
     /** @var PaginatedFinderInterface $paginatedFinder */
     protected $paginatedFinder;
-
-    /** @var AbstractDatatableQueryBuilder $datatableQueryBuilder */
 
     /** @var string */
     protected $datatableQueryBuilderClass;
@@ -79,11 +78,11 @@ class DatatableResponse extends AbstractDatatableResponse
     }
 
     /**
-     * @return JsonResponse
-     * @throws \Exception
+     * @inheritdoc
      */
     public function getJsonResponse(): JsonResponse
     {
+        $this->checkResponseDependencies();
         $this->getDatatableQueryBuilder()->setPaginatedFinder($this->paginatedFinder);
         $this->getDatatableQueryBuilder()->setModelDefinition($this->modelDefinition);
 
@@ -95,7 +94,7 @@ class DatatableResponse extends AbstractDatatableResponse
         $outputHeader = [
             'draw' => (int)$this->requestParams['draw'],
             'recordsFiltered' => $entries->getCount(),
-            'recordsTotal' => true === $this->countAllResults ? (int)$this->datatableQueryBuilder->getCountAllResults() : 0,
+            'recordsTotal' => true === $this->countAllResults ? $this->datatableQueryBuilder->getCountAllResults() : 0,
         ];
 
         $response = new JsonResponse(array_merge($outputHeader, $formatter->getOutput()));

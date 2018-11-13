@@ -15,6 +15,7 @@ use \Sg\DatatablesBundle\Response\Doctrine\DatatableFormatter as DoctrineDatatab
 
 /**
  * @deprecated
+ * this class is moved to the subdirectory doctrine and should not be used anymore
  */
 class DatatableFormatter extends DoctrineDatatableFormatter
 {

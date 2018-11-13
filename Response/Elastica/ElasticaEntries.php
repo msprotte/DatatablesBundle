@@ -2,7 +2,9 @@
 
 namespace Sg\DatatablesBundle\Response\Elastica;
 
-class ElasticaEntries
+use Traversable;
+
+class ElasticaEntries implements \IteratorAggregate
 {
     /** @var int */
     protected $count = 0;
@@ -46,5 +48,13 @@ class ElasticaEntries
         $this->entries = $entries;
 
         return $this;
+    }
+
+    /**
+     * @return \ArrayIterator|Traversable
+     */
+    public function getIterator()
+    {
+        return new \ArrayIterator($this->getEntries());
     }
 }

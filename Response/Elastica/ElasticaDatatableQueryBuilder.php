@@ -55,28 +55,27 @@ abstract class ElasticaDatatableQueryBuilder extends AbstractDatatableQueryBuild
     {
         foreach ($this->columns as $key => $column) {
             if (true === $this->accessor->getValue($column, 'customDql')) {
-                // Order on alias column name
                 $this->addOrderColumn($column);
-                // Fix subqueries alias duplication
                 $this->addSearchColumn($column);
             } elseif (true === $this->accessor->getValue($column, 'selectColumn')) {
                 $this->addSearchOrderColumn($column);
             } else {
-                // Add Order-Field for VirtualColumn
-                if ($this->accessor->isReadable($column, 'orderColumn') && true === $this->accessor->getValue($column,
-                        'orderable')) {
+                if (
+                    $this->accessor->isReadable($column, 'orderColumn') &&
+                    true === $this->accessor->getValue($column, 'orderable')
+                ) {
                     $orderColumn = $this->accessor->getValue($column, 'orderColumn');
                     $this->orderColumns[] = $orderColumn;
                 } else {
                     $this->orderColumns[] = null;
                 }
 
-                // Add Search-Field for VirtualColumn
-                if ($this->accessor->isReadable($column, 'searchColumn') && true === $this->accessor->getValue($column,
-                        'searchable')) {
+                if (
+                    $this->accessor->isReadable($column, 'searchColumn') &&
+                    true === $this->accessor->getValue($column, 'searchable')
+                ) {
                     $searchColumn = $this->accessor->getValue($column, 'searchColumn');
-                    $searchParts = explode('.', $searchColumn);
-                    if (count($searchParts) < 2) {
+                    if ((substr_count($searchColumn, '.') + 1) < 2) {
                         $searchColumn = $this->entityShortName . '.' . $searchColumn;
                     }
                     $this->searchColumns[] = $searchColumn;
