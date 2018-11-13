@@ -130,7 +130,11 @@ class DatatableResponse extends AbstractDatatableResponse
     protected function createDatatableQueryBuilder(): AbstractDatatableQueryBuilder
     {
         if (null === $this->datatable) {
-            throw new \Exception('DatatableResponse::getDatatableQueryBuilder(): Set a Datatable class with setDatatable().');
+            throw new \Exception('Elastica\DatatableResponse::getDatatableQueryBuilder(): Set a Datatable class with setDatatable().');
+        }
+
+        if (null === $this->datatableQueryBuilderClass) {
+            throw new \Exception('Elastica\DatatableResponse::getDatatableQueryBuilder(): Set a datatableQueryBuilderClass first.');
         }
 
         $this->requestParams = $this->getRequestParams();
