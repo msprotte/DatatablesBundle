@@ -87,6 +87,16 @@ class DatatableTwigExtension extends Twig_Extension
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function getFilters()
+    {
+        return [
+            new \Twig_SimpleFilter('sg_datatables_bool_var', [$this, 'boolVar']),
+        ];
+    }
+
+    /**
      * @param Twig_Environment $twig
      * @param DatatableInterface $datatable
      *
@@ -253,5 +263,21 @@ class DatatableTwigExtension extends Twig_Extension
                 'pipeline' => $pipeline,
             ]
         );
+    }
+
+    /**
+     * Renders: {{ var ? 'true' : 'false' }}
+     *
+     * @param mixed $value
+     *
+     * @return string
+     */
+    public function boolVar($value)
+    {
+        if ($value) {
+            return 'true';
+        } else {
+            return 'false';
+        }
     }
 }
