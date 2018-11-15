@@ -10,11 +10,10 @@
 
     $(document).ready(function () {
 
-        var selector = "#sg-datatables-{{ sg_datatables_view.uniqueName }}";
+        var selector = "#sg-datatables-{{ sg_datatables_view.name }}";
         var oTable;
 
-        var defaults = {
-        };
+        var defaults = {};
 
         var language = {
             {% include '@SgDatatables/datatable/language.html.twig' %}
@@ -37,7 +36,7 @@
         };
 
         var extensions = {
-            {% include '@SgDatatables/datatable/extensions.html.twig' %}
+            {{ sg_datatable_extensions_render(sg_datatables_view) }}
         };
 
         var columns = {
@@ -50,9 +49,9 @@
 
         function postCreateDatatable(pipeline) {
             {% for column in sg_datatables_view.columnBuilder.columns %}
-                {% if column.renderPostCreateDatatableJsContent is not null %}
-                    {{ column.renderPostCreateDatatableJsContent|raw }}
-                {% endif %}
+            {% if column.renderPostCreateDatatableJsContent is not null %}
+            {{ column.renderPostCreateDatatableJsContent|raw }}
+            {% endif %}
             {% endfor %}
         }
 
@@ -68,16 +67,18 @@
 
             if (!$.fn.dataTable.isDataTable(selector)) {
                 $(selector)
-                    {% include '@SgDatatables/datatable/events.html.twig' %}
+                {% include '@SgDatatables/datatable/events.html.twig' %}
                 ;
-            
+
                 oTable = $(selector)
                     .DataTable(defaults)
-                        .on('draw.dt', function() { postCreateDatatable({{ sg_datatables_view.ajax.pipeline}}) })
-                    ;
+                    .on('draw.dt', function () {
+                        postCreateDatatable({{ sg_datatables_view.ajax.pipeline }})
+                    })
+                ;
 
                 {% if true == sg_datatables_view.options.individualFiltering %}
-                    {% include '@SgDatatables/datatable/search.js.twig' %}
+                {% include '@SgDatatables/datatable/search.js.twig' %}
                 {% endif %}
             }
         }
@@ -85,7 +86,7 @@
         createDatatable();
 
         {% if sg_datatables_view.columnBuilder.uniqueColumn('multiselect') is not null %}
-            {{ sg_datatables_render_multiselect_actions( sg_datatables_view.columnBuilder.uniqueColumn('multiselect'), sg_datatables_view.ajax.pipeline) }}
+        {{ sg_datatables_render_multiselect_actions( sg_datatables_view.columnBuilder.uniqueColumn('multiselect'), sg_datatables_view.ajax.pipeline) }}
         {% endif %}
     });
 

@@ -11,74 +11,32 @@
 
 namespace Sg\DatatablesBundle\Datatable\Extension;
 
-use Sg\DatatablesBundle\Datatable\OptionsTrait;
-
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Exception;
 
-/**
- * Class Responsive
- *
- * @package Sg\DatatablesBundle\Datatable\Extension
- */
-class Responsive
+class Responsive extends AbstractExtension
 {
-    /**
-     * Use the OptionsResolver.
-     */
-    use OptionsTrait;
-
-    //-------------------------------------------------
-    // DataTables - Responsive Extension
-    //-------------------------------------------------
-
-    /**
-     * Responsive details options.
-     * Required option.
-     *
-     * @var array|bool
-     */
+    /** @var array|bool */
     protected $details;
 
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
-
-    /**
-     * Responsive constructor.
-     */
     public function __construct()
     {
-        $this->initOptions();
+        parent::__construct('responsive');
     }
 
-    //-------------------------------------------------
-    // Options
-    //-------------------------------------------------
-
     /**
-     * Config options.
-     *
      * @param OptionsResolver $resolver
      *
      * @return $this
      */
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): ExtensionInterface
     {
         $resolver->setRequired('details');
-
-        $resolver->setAllowedTypes('details', array('array', 'bool'));
+        $resolver->setAllowedTypes('details', ['array', 'bool']);
 
         return $this;
     }
 
-    //-------------------------------------------------
-    // Getters && Setters
-    //-------------------------------------------------
-
     /**
-     * Get details.
-     *
      * @return array|bool
      */
     public function getDetails()
@@ -87,29 +45,26 @@ class Responsive
     }
 
     /**
-     * Set details.
-     *
      * @param array|bool $details
      *
      * @return $this
-     * @throws Exception
      */
-    public function setDetails($details)
+    public function setDetails($details): self
     {
-        if (is_array($details)) {
+        if (\is_array($details)) {
             foreach ($details as $key => $value) {
-                if (false === in_array($key, array('type', 'target', 'renderer', 'display'))) {
-                    throw new Exception(
+                if (false === \in_array($key, ['type', 'target', 'renderer', 'display'])) {
+                    throw new \UnexpectedValueException(
                         "Responsive::setDetails(): $key is not an valid option."
                     );
                 }
             }
 
-            if (is_array($details['renderer'])) {
+            if (\is_array($details['renderer'])) {
                 $this->validateArrayForTemplateAndOther($details['renderer']);
             }
 
-            if (is_array($details['display'])) {
+            if (\is_array($details['display'])) {
                 $this->validateArrayForTemplateAndOther($details['display']);
             }
         }
@@ -117,5 +72,19 @@ class Responsive
         $this->details = $details;
 
         return $this;
+    }
+
+    /**
+     * @param array $config
+     *
+     * @return array
+     */
+    public function getJavaScriptConfiguration(array $config = []): array
+    {
+        if (null !== $this->getDetails()) {
+            $config['details'] = $this->getDetails();
+        }
+
+        return parent::getJavaScriptConfiguration($config);
     }
 }

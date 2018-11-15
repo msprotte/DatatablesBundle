@@ -9,24 +9,10 @@
 
 namespace Sg\DatatablesBundle\Datatable\Extension;
 
-use Sg\DatatablesBundle\Datatable\OptionsTrait;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-/**
- * Class Select
- *
- * @package Sg\DatatablesBundle\Datatable\Extension
- */
-class Select {
-    /**
-     * Use the OptionsResolver.
-     */
-    use OptionsTrait;
-
-    //-------------------------------------------------
-    // DataTables - Select Extension - select
-    //-------------------------------------------------
-
+class Select extends AbstractExtension
+{
     /**
      * Indicate if the selected items will be removed when clicking outside of the table
      *
@@ -69,185 +55,190 @@ class Select {
      */
     protected $style;
 
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
-
-    /**
-     * Select constructor.
-     */
-    public function __construct() {
-        $this->initOptions();
+    public function __construct()
+    {
+        parent::__construct('select');
     }
 
-    //-------------------------------------------------
-    // Options
-    //-------------------------------------------------
-
     /**
-     * Configure options.
-     *
      * @param OptionsResolver $resolver
      *
      * @return $this
      */
-    public function configureOptions(OptionsResolver $resolver) {
+    public function configureOptions(OptionsResolver $resolver): ExtensionInterface
+    {
         $resolver->setDefaults(
-            array(
-                'blurable'   => null,
+            [
+                'blurable' => null,
                 'class_name' => null,
-                'info'       => null,
-                'items'      => null,
-                'selector'   => null,
-                'style'      => null,
-            )
+                'info' => null,
+                'items' => null,
+                'selector' => null,
+                'style' => null,
+            ]
         );
 
-        $resolver->setAllowedTypes('blurable', array('boolean', 'null'));
-        $resolver->setAllowedTypes('class_name', array('string', 'null'));
-        $resolver->setAllowedTypes('info', array('boolean', 'null'));
-        $resolver->setAllowedTypes('items', array('string', 'null'));
-        $resolver->setAllowedValues('items', array('row', 'column', 'cell'));
-        $resolver->setAllowedTypes('selector', array('string', 'null'));
-        $resolver->setAllowedTypes('style', array('string', 'null'));
-        $resolver->setAllowedValues('style', array('api', 'single', 'multi', 'os', 'multi+shift'));
+        $resolver->setAllowedTypes('blurable', ['boolean', 'null']);
+        $resolver->setAllowedTypes('class_name', ['string', 'null']);
+        $resolver->setAllowedTypes('info', ['boolean', 'null']);
+        $resolver->setAllowedTypes('items', ['string', 'null']);
+        $resolver->setAllowedValues('items', ['row', 'column', 'cell']);
+        $resolver->setAllowedTypes('selector', ['string', 'null']);
+        $resolver->setAllowedTypes('style', ['string', 'null']);
+        $resolver->setAllowedValues('style', ['api', 'single', 'multi', 'os', 'multi+shift']);
 
         return $this;
     }
 
-    //-------------------------------------------------
-    // Getters && Setters
-    //-------------------------------------------------
-
     /**
-     * Get blurable.
-     *
      * @return boolean|null
      */
-    public function getBlurable() {
+    public function getBlurable()
+    {
         return $this->blurable;
     }
 
     /**
-     * Set blurable.
-     *
      * @param string|null $blurable
      *
      * @return $this
      */
-    public function setBlurable($blurable) {
+    public function setBlurable($blurable): self
+    {
         $this->blurable = $blurable;
 
         return $this;
     }
 
     /**
-     * Get className.
-     *
      * @return null|string
      */
-    public function getClassName() {
+    public function getClassName()
+    {
         return $this->className;
     }
 
     /**
-     * Set className.
-     *
      * @param null|string $className
      *
      * @return $this
      */
-    public function setClassName($className) {
+    public function setClassName($className): self
+    {
         $this->className = $className;
 
         return $this;
     }
 
     /**
-     * Get info.
-     *
      * @return boolean|null
      */
-    public function getInfo() {
+    public function getInfo()
+    {
         return $this->info;
     }
 
     /**
-     * Set info.
-     *
      * @param boolean|null $info
      *
      * @return $this
      */
-    public function setInfo($info) {
+    public function setInfo($info): self
+    {
         $this->info = $info;
 
         return $this;
     }
 
     /**
-     * Get items.
-     *
      * @return string|null
      */
-    public function getItems() {
+    public function getItems()
+    {
         return $this->items;
     }
 
     /**
-     * Set items.
-     *
      * @param string|null $items
      *
      * @return $this
      */
-    public function setItems($items) {
+    public function setItems($items): self
+    {
         $this->items = $items;
 
         return $this;
     }
 
     /**
-     * Get selector.
-     *
      * @return string|null
      */
-    public function getSelector() {
+    public function getSelector()
+    {
         return $this->selector;
     }
 
     /**
-     * Set selector.
-     *
      * @param string|null $selector
      *
      * @return $this
      */
-    public function setSelector($selector) {
+    public function setSelector($selector): self
+    {
         $this->selector = $selector;
 
         return $this;
     }
 
     /**
-     * Get style.
-     *
      * @return string|null
      */
-    public function getStyle() {
+    public function getStyle()
+    {
         return $this->style;
     }
 
     /**
-     * Set style.
-     *
      * @param string|null $style
      *
      * @return $this
      */
-    public function setStyle($style) {
+    public function setStyle($style): self
+    {
         $this->style = $style;
 
         return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getJavaScriptConfiguration(array $config = []): array
+    {
+        if ($this->getBlurable() !== null) {
+            $config['blurable'] = $this->getBlurable();
+        }
+
+        if ($this->getClassName() !== null) {
+            $config['className'] = $this->getClassName();
+        }
+
+        if ($this->getInfo() !== null) {
+            $config['info'] = $this->getInfo();
+        }
+
+        if ($this->getItems() !== null) {
+            $config['items'] = $this->getItems();
+        }
+
+        if ($this->getSelector() !== null) {
+            $config['selector'] = $this->getSelector();
+        }
+
+        if ($this->getStyle() !== null) {
+            $config['style'] = $this->getStyle();
+        }
+
+        return parent::getJavaScriptConfiguration($config);
     }
 }

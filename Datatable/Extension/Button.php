@@ -11,147 +11,56 @@
 
 namespace Sg\DatatablesBundle\Datatable\Extension;
 
-use Sg\DatatablesBundle\Datatable\OptionsTrait;
-
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-/**
- * Class Button
- *
- * @package Sg\DatatablesBundle\Datatable\Extension
- */
-class Button
+class Button extends AbstractExtension
 {
-    /**
-     * Use the OptionsResolver.
-     */
-    use OptionsTrait;
-
-    //-------------------------------------------------
-    // DataTables - Buttons Extension - buttons.buttons
-    //-------------------------------------------------
-
-    /**
-     * Function describing the action to take on activation.
-     *
-     * @var array|null
-     */
+    /** @var array|null */
     protected $action;
 
-    /**
-     * Ensure that any requirements have been satisfied before initialising a button.
-     *
-     * @var array|null
-     */
+    /** @var array|null */
     protected $available;
 
-    /**
-     * Button class name.
-     *
-     * @var string|null
-     */
+    /** @var string|null */
     protected $className;
 
-    /**
-     * Function that is called when the button is destroyed.
-     *
-     * @var array|null
-     */
+    /** @var array|null */
     protected $destroy;
 
-    /**
-     * Initial enabled state.
-     *
-     * @var bool|null
-     */
-    protected $enabled;
-
-    /**
-     * Based extends object.
-     *
-     * @var string|null
-     */
+    /** @var string|null */
     protected $extend;
 
-    /**
-     * Button initialisation callback function.
-     *
-     * @var array|null
-     */
+    /** @var array|null */
     protected $init;
 
-    /**
-     * Key activation configuration.
-     *
-     * @var string|null
-     */
+    /** @var string|null */
     protected $key;
 
-    /**
-     * Button name for use in selectors.
-     *
-     * @var string|null
-     */
-    protected $name;
-
-    /**
-     * Unique namespace for every button.
-     *
-     * @var string|null
-     */
+    /** @var string|null */
     protected $namespace;
 
-    /**
-     * Visible text.
-     *
-     * @var string|null
-     */
+    /** @var string|null */
     protected $text;
 
-    /**
-     * Button title attribute text.
-     *
-     * @var string|null
-     */
+    /** @var string|null */
     protected $titleAttr;
 
-    //-------------------------------------------------
-    // All special button options
-    //-------------------------------------------------
-
-    /**
-     * Button options.
-     *
-     * @var array|null
-     */
+    /** @var array|null */
     protected $buttonOptions;
 
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
-
-    /**
-     * Button constructor.
-     */
     public function __construct()
     {
-        $this->initOptions();
+        parent::__construct('button');
     }
 
-    //-------------------------------------------------
-    // Options
-    //-------------------------------------------------
-
     /**
-     * Configure options.
-     *
      * @param OptionsResolver $resolver
      *
      * @return $this
      */
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): ExtensionInterface
     {
-        $resolver->setDefaults(array(
+        $resolver->setDefaults([
             'action' => null,
             'available' => null,
             'class_name' => null,
@@ -165,32 +74,26 @@ class Button
             'text' => null,
             'title_attr' => null,
             'button_options' => null,
-        ));
+        ]);
 
-        $resolver->setAllowedTypes('action', array('array', 'null'));
-        $resolver->setAllowedTypes('available', array('array', 'null'));
-        $resolver->setAllowedTypes('class_name', array('string', 'null'));
-        $resolver->setAllowedTypes('destroy', array('array', 'null'));
-        $resolver->setAllowedTypes('enabled', array('bool', 'null'));
-        $resolver->setAllowedTypes('extend', array('string', 'null'));
-        $resolver->setAllowedTypes('init', array('array', 'null'));
-        $resolver->setAllowedTypes('key', array('string', 'null'));
-        $resolver->setAllowedTypes('name', array('string', 'null'));
-        $resolver->setAllowedTypes('namespace', array('string', 'null'));
-        $resolver->setAllowedTypes('text', array('string', 'null'));
-        $resolver->setAllowedTypes('title_attr', array('string', 'null'));
-        $resolver->setAllowedTypes('button_options', array('array', 'null'));
+        $resolver->setAllowedTypes('action', ['array', 'null']);
+        $resolver->setAllowedTypes('available', ['array', 'null']);
+        $resolver->setAllowedTypes('class_name', ['string', 'null']);
+        $resolver->setAllowedTypes('destroy', ['array', 'null']);
+        $resolver->setAllowedTypes('enabled', ['bool', 'null']);
+        $resolver->setAllowedTypes('extend', ['string', 'null']);
+        $resolver->setAllowedTypes('init', ['array', 'null']);
+        $resolver->setAllowedTypes('key', ['string', 'null']);
+        $resolver->setAllowedTypes('name', ['string', 'null']);
+        $resolver->setAllowedTypes('namespace', ['string', 'null']);
+        $resolver->setAllowedTypes('text', ['string', 'null']);
+        $resolver->setAllowedTypes('title_attr', ['string', 'null']);
+        $resolver->setAllowedTypes('button_options', ['array', 'null']);
 
         return $this;
     }
 
-    //-------------------------------------------------
-    // Getters && Setters
-    //-------------------------------------------------
-
     /**
-     * Get action.
-     *
      * @return array|null
      */
     public function getAction()
@@ -199,15 +102,13 @@ class Button
     }
 
     /**
-     * Set action.
-     *
      * @param array|null $action
      *
      * @return $this
      */
-    public function setAction($action)
+    public function setAction($action): self
     {
-        if (is_array($action)) {
+        if (\is_array($action)) {
             $this->validateArrayForTemplateAndOther($action);
         }
 
@@ -217,8 +118,6 @@ class Button
     }
 
     /**
-     * Get available.
-     *
      * @return array|null
      */
     public function getAvailable()
@@ -227,15 +126,13 @@ class Button
     }
 
     /**
-     * Set available.
-     *
      * @param array|null $available
      *
      * @return $this
      */
-    public function setAvailable($available)
+    public function setAvailable($available): self
     {
-        if (is_array($available)) {
+        if (\is_array($available)) {
             $this->validateArrayForTemplateAndOther($available);
         }
 
@@ -245,8 +142,6 @@ class Button
     }
 
     /**
-     * Get className.
-     *
      * @return null|string
      */
     public function getClassName()
@@ -255,13 +150,11 @@ class Button
     }
 
     /**
-     * Set className.
-     *
      * @param null|string $className
      *
      * @return $this
      */
-    public function setClassName($className)
+    public function setClassName($className): self
     {
         $this->className = $className;
 
@@ -269,8 +162,6 @@ class Button
     }
 
     /**
-     * Get destroy.
-     *
      * @return array|null
      */
     public function getDestroy()
@@ -279,15 +170,13 @@ class Button
     }
 
     /**
-     * Set destroy.
-     *
      * @param array|null $destroy
      *
      * @return $this
      */
-    public function setDestroy($destroy)
+    public function setDestroy($destroy): self
     {
-        if (is_array($destroy)) {
+        if (\is_array($destroy)) {
             $this->validateArrayForTemplateAndOther($destroy);
         }
 
@@ -297,32 +186,6 @@ class Button
     }
 
     /**
-     * Get enabled.
-     *
-     * @return bool|null
-     */
-    public function getEnabled()
-    {
-        return $this->enabled;
-    }
-
-    /**
-     * Set enabled.
-     *
-     * @param bool|null $enabled
-     *
-     * @return $this
-     */
-    public function setEnabled($enabled)
-    {
-        $this->enabled = $enabled;
-
-        return $this;
-    }
-
-    /**
-     * Get extend.
-     *
      * @return null|string
      */
     public function getExtend()
@@ -331,13 +194,11 @@ class Button
     }
 
     /**
-     * Set extend.
-     *
      * @param null|string $extend
      *
      * @return $this
      */
-    public function setExtend($extend)
+    public function setExtend($extend): self
     {
         $this->extend = $extend;
 
@@ -345,8 +206,6 @@ class Button
     }
 
     /**
-     * Get init.
-     *
      * @return array|null
      */
     public function getInit()
@@ -355,15 +214,13 @@ class Button
     }
 
     /**
-     * Set init.
-     *
      * @param array|null $init
      *
      * @return $this
      */
-    public function setInit($init)
+    public function setInit($init): self
     {
-        if (is_array($init)) {
+        if (\is_array($init)) {
             $this->validateArrayForTemplateAndOther($init);
         }
 
@@ -373,8 +230,6 @@ class Button
     }
 
     /**
-     * Get key.
-     *
      * @return null|string
      */
     public function getKey()
@@ -383,13 +238,11 @@ class Button
     }
 
     /**
-     * Set key.
-     *
      * @param null|string $key
      *
      * @return $this
      */
-    public function setKey($key)
+    public function setKey($key): self
     {
         $this->key = $key;
 
@@ -397,32 +250,6 @@ class Button
     }
 
     /**
-     * Get name.
-     *
-     * @return null|string
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * Set name.
-     *
-     * @param null|string $name
-     *
-     * @return $this
-     */
-    public function setName($name)
-    {
-        $this->name = $name;
-
-        return $this;
-    }
-
-    /**
-     * Get namespace.
-     *
      * @return null|string
      */
     public function getNamespace()
@@ -431,13 +258,11 @@ class Button
     }
 
     /**
-     * Set namespace.
-     *
      * @param null|string $namespace
      *
      * @return $this
      */
-    public function setNamespace($namespace)
+    public function setNamespace($namespace): self
     {
         $this->namespace = $namespace;
 
@@ -445,8 +270,6 @@ class Button
     }
 
     /**
-     * Get text.
-     *
      * @return null|string
      */
     public function getText()
@@ -455,13 +278,11 @@ class Button
     }
 
     /**
-     * Set text.
-     *
      * @param null|string $text
      *
      * @return $this
      */
-    public function setText($text)
+    public function setText($text): self
     {
         $this->text = $text;
 
@@ -469,8 +290,6 @@ class Button
     }
 
     /**
-     * Get titleAttr.
-     *
      * @return null|string
      */
     public function getTitleAttr()
@@ -479,13 +298,11 @@ class Button
     }
 
     /**
-     * Set titleAttr.
-     *
      * @param null|string $titleAttr
      *
      * @return $this
      */
-    public function setTitleAttr($titleAttr)
+    public function setTitleAttr($titleAttr): self
     {
         $this->titleAttr = $titleAttr;
 
@@ -493,8 +310,6 @@ class Button
     }
 
     /**
-     * Get buttonOptions.
-     *
      * @return array|null
      */
     public function getButtonOptions()
@@ -503,16 +318,66 @@ class Button
     }
 
     /**
-     * Set buttonOptions.
-     *
      * @param array|null $buttonOptions
      *
      * @return $this
      */
-    public function setButtonOptions($buttonOptions)
+    public function setButtonOptions($buttonOptions): self
     {
         $this->buttonOptions = $buttonOptions;
 
         return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getJavaScriptConfiguration(array $config = []): array
+    {
+        if (null !== $this->getAction()) {
+            $config['action'] = $this->getAction();
+        }
+
+        if (null !== $this->getAvailable()) {
+            $config['available'] = $this->getAvailable();
+        }
+
+        if (null !== $this->getButtonOptions()) {
+            $config['buttonOptions'] = $this->getButtonOptions();
+        }
+
+        if (null !== $this->getClassName()) {
+            $config['className'] = $this->getClassName();
+        }
+
+        if (null !== $this->getDestroy()) {
+            $config['destroy'] = $this->getDestroy();
+        }
+
+        if (null !== $this->getExtend()) {
+            $config['extend'] = $this->getExtend();
+        }
+
+        if (null !== $this->getInit()) {
+            $config['init'] = $this->getInit();
+        }
+
+        if (null !== $this->getKey()) {
+            $config['key'] = $this->getKey();
+        }
+
+        if (null !== $this->getNamespace()) {
+            $config['nameSpace'] = $this->getNamespace();
+        }
+
+        if (null !== $this->getText()) {
+            $config['text'] = $this->getText();
+        }
+
+        if (null !== $this->getTitleAttr()) {
+            $config['titleAttr'] = $this->getTitleAttr();
+        }
+
+        return parent::getJavaScriptConfiguration($config);
     }
 }

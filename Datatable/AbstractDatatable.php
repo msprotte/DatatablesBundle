@@ -30,140 +30,67 @@ use Exception;
  */
 abstract class AbstractDatatable implements DatatableInterface
 {
-    /**
-     * The AuthorizationChecker service.
-     *
-     * @var AuthorizationCheckerInterface
-     */
+    /** @var AuthorizationCheckerInterface */
     protected $authorizationChecker;
 
-    /**
-     * The SecurityTokenStorage service.
-     *
-     * @var TokenStorageInterface
-     */
+    /** @var TokenStorageInterface */
     protected $securityToken;
 
-    /**
-     * The Translator service.
-     *
-     * @var TranslatorInterface
-     */
+    /** @var TranslatorInterface */
     protected $translator;
 
-    /**
-     * The Router service.
-     *
-     * @var RouterInterface
-     */
+    /** @var RouterInterface */
     protected $router;
 
-    /**
-     * The doctrine orm entity manager service.
-     *
-     * @var EntityManagerInterface
-     */
+    /** @var EntityManagerInterface */
     protected $em;
 
-    /**
-     * The Twig Environment.
-     *
-     * @var Twig_Environment
-     */
+    /** @var Twig_Environment */
     protected $twig;
 
-    /**
-     * A ColumnBuilder instance.
-     *
-     * @var ColumnBuilder
-     */
+    /** @var ColumnBuilder */
     protected $columnBuilder;
 
-    /**
-     * An Ajax instance.
-     *
-     * @var Ajax
-     */
+    /** @var Ajax */
     protected $ajax;
 
-    /**
-     * An Options instance.
-     *
-     * @var Options
-     */
+    /** @var Options */
     protected $options;
 
-    /**
-     * A Features instance.
-     *
-     * @var Features
-     */
+    /** @var Features */
     protected $features;
 
-    /**
-     * A Callbacks instance.
-     *
-     * @var Callbacks
-     */
+    /** @var Callbacks */
     protected $callbacks;
 
-    /**
-     * A Events instance.
-     *
-     * @var Events
-     */
+    /** @var Events */
     protected $events;
 
-    /**
-     * An Extensions instance.
-     *
-     * @var Extensions
-     */
+    /** @var Extensions */
     protected $extensions;
 
-    /**
-     * A Language instance.
-     *
-     * @var Language
-     */
+    /** @var Language */
     protected $language;
 
-    /**
-     * The unique id for this instance.
-     *
-     * @var int
-     */
+    /** @var int */
     protected $uniqueId;
 
-    /**
-     * The PropertyAccessor.
-     *
-     * @var PropertyAccessor
-     */
+    /** @var PropertyAccessor */
     protected $accessor;
 
-    //-------------------------------------------------
-
     /**
-     * Used to generate unique names.
-     *
      * @var array
      */
-    protected static $uniqueCounter = array();
-
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
+    protected static $uniqueCounter = [];
 
     /**
-     * AbstractDatatable constructor.
-     *
      * @param AuthorizationCheckerInterface $authorizationChecker
-     * @param TokenStorageInterface         $securityToken
-     * @param TranslatorInterface           $translator
-     * @param RouterInterface               $router
-     * @param EntityManagerInterface        $em
-     * @param Twig_Environment              $twig
+     * @param TokenStorageInterface $securityToken
+     * @param TranslatorInterface $translator
+     * @param RouterInterface $router
+     * @param EntityManagerInterface $em
+     * @param Twig_Environment $twig
+     * @param Extensions|null $registry
      *
      * @throws Exception
      */
@@ -173,7 +100,8 @@ abstract class AbstractDatatable implements DatatableInterface
         TranslatorInterface $translator,
         RouterInterface $router,
         EntityManagerInterface $em,
-        Twig_Environment $twig
+        Twig_Environment $twig,
+        Extensions $registry = null
     ) {
         $this->validateName();
 
@@ -198,15 +126,11 @@ abstract class AbstractDatatable implements DatatableInterface
         $this->features = new Features();
         $this->callbacks = new Callbacks();
         $this->events = new Events();
-        $this->extensions = new Extensions();
+        $this->extensions = $registry instanceof Extensions ? $registry : new Extensions();
         $this->language = new Language();
 
         $this->accessor = PropertyAccess::createPropertyAccessor();
     }
-
-    //-------------------------------------------------
-    // DatatableInterface
-    //-------------------------------------------------
 
     /**
      * {@inheritdoc}
@@ -293,10 +217,11 @@ abstract class AbstractDatatable implements DatatableInterface
      */
     public function getOptionsArrayFromEntities($entities, $keyFrom = 'id', $valueFrom = 'name')
     {
-        $options = array();
+        $options = [];
 
         foreach ($entities as $entity) {
-            if (true === $this->accessor->isReadable($entity, $keyFrom) && true === $this->accessor->isReadable($entity, $valueFrom)) {
+            if (true === $this->accessor->isReadable($entity, $keyFrom) && true === $this->accessor->isReadable($entity,
+                    $valueFrom)) {
                 $options[$this->accessor->getValue($entity, $keyFrom)] = $this->accessor->getValue($entity, $valueFrom);
             }
         }
@@ -317,19 +242,13 @@ abstract class AbstractDatatable implements DatatableInterface
      */
     public function getUniqueName()
     {
-        return $this->getName().($this->getUniqueId() > 1 ? '-'.$this->getUniqueId() : '');
+        return $this->getName() . ($this->getUniqueId() > 1 ? '-' . $this->getUniqueId() : '');
     }
 
-    //-------------------------------------------------
-    // Private
-    //-------------------------------------------------
-
     /**
-     * Checks the name only contains letters, numbers, underscores or dashes.
-     *
      * @throws Exception
      */
-    private function validateName()
+    protected function validateName()
     {
         if (1 !== preg_match(self::NAME_REGEX, $this->getName())) {
             throw new Exception('AbstractDatatable::validateName(): The result of the getName method can only contain letters, numbers, underscore and dashes.');
