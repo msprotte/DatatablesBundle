@@ -42,7 +42,7 @@ class DatatableTwigExtension extends Twig_Extension
     /**
      * {@inheritdoc}
      */
-    public function getName()
+    public function getName(): string
     {
         return 'sg_datatables_twig_extension';
     }
@@ -50,9 +50,14 @@ class DatatableTwigExtension extends Twig_Extension
     /**
      * {@inheritdoc}
      */
-    public function getFunctions()
+    public function getFunctions(): array
     {
         return [
+            new Twig_SimpleFunction(
+                'sg_datatables_render_html',
+                [$this, 'datatablesRenderHtml'],
+                ['is_safe' => ['html'], 'needs_environment' => true]
+            ),
             new Twig_SimpleFunction(
                 'sg_datatables_render',
                 [$this, 'datatablesRender'],
@@ -87,7 +92,7 @@ class DatatableTwigExtension extends Twig_Extension
      *
      * @return string
      */
-    public function datatablesRender(Twig_Environment $twig, DatatableInterface $datatable)
+    public function datatablesRender(Twig_Environment $twig, DatatableInterface $datatable): string
     {
         return $twig->render(
             '@SgDatatables/datatable/datatable.html.twig',
@@ -103,7 +108,7 @@ class DatatableTwigExtension extends Twig_Extension
      *
      * @return string
      */
-    public function datatablesRenderHtml(Twig_Environment $twig, DatatableInterface $datatable)
+    public function datatablesRenderHtml(Twig_Environment $twig, DatatableInterface $datatable): string
     {
         return $twig->render(
             '@SgDatatables/datatable/datatable_html.html.twig',
@@ -119,7 +124,7 @@ class DatatableTwigExtension extends Twig_Extension
      *
      * @return string
      */
-    public function datatablesRenderJs(Twig_Environment $twig, DatatableInterface $datatable)
+    public function datatablesRenderJs(Twig_Environment $twig, DatatableInterface $datatable): string
     {
         return $twig->render(
             '@SgDatatables/datatable/datatable_js.html.twig',
@@ -135,7 +140,7 @@ class DatatableTwigExtension extends Twig_Extension
      *
      * @return string
      */
-    public function datatablesRenderExtensions(Twig_Environment $twig, DatatableInterface $datatable)
+    public function datatablesRenderExtensions(Twig_Environment $twig, DatatableInterface $datatable): string
     {
         /** @var Extensions $extensionRegistry */
         $extensionRegistry = $datatable->getExtensions();
@@ -165,7 +170,7 @@ class DatatableTwigExtension extends Twig_Extension
         DatatableInterface $datatable,
         ColumnInterface $column,
         $position
-    ) {
+    ): string {
         /** @var FilterInterface $filter */
         $filter = $this->accessor->getValue($column, 'filter');
         $index = $this->accessor->getValue($column, 'index');
@@ -200,7 +205,7 @@ class DatatableTwigExtension extends Twig_Extension
         Twig_Environment $twig,
         ColumnInterface $multiselectColumn,
         $pipeline
-    ) {
+    ): string {
         $parameters = [];
         $values = [];
         $actions = $this->accessor->getValue($multiselectColumn, 'actions');
