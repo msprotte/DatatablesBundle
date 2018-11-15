@@ -19,7 +19,7 @@
     },
     "require": {
         "php": ">=7.0",
-        "ext-json": "^1.6",
+        "ext-json": "^1.4",
         "doctrine/orm": "^2.6",
         "friendsofsymfony/jsrouting-bundle": "^1.6|^2.0",
         "friendsofsymfony/elastica-bundle": "^5.0",
