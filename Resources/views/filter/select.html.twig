@@ -62,12 +62,14 @@
 {% set cancel_button_js %}
     {% if column.filter.cancelButton is same as(true) %}
         <script type="text/javascript">
-            $("#{{ cancel_button_id_selector }}").click(function() {
-                if ('' != $("#{{ filter_id_selector }}").val()) {
-                    $("#{{ filter_id_selector }}")
-                        .val('')
-                        .change();
-                }
+            document.addEventListener("DOMContentLoaded", function(event) {
+                $("#{{ cancel_button_id_selector }}").click(function() {
+                    if ('' != $("#{{ filter_id_selector }}").val()) {
+                        $("#{{ filter_id_selector }}")
+                            .val('')
+                            .change();
+                    }
+                });
             });
         </script>
     {% endif %}

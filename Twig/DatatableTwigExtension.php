@@ -160,11 +160,13 @@ class DatatableTwigExtension extends Twig_Extension
             if (!$extension->isEnabled()) {
                 continue;
             }
+            $config = $extension->getJavaScriptConfiguration();
 
-            $jsParts[] = json_encode($extension->getJavaScriptConfiguration());
+            $key = key($config);
+            $jsParts[$key] = $config[$key];
         }
 
-        return implode('\n', $jsParts);
+        return json_encode($jsParts);
     }
 
     /**

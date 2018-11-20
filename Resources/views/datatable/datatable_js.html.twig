@@ -35,9 +35,7 @@
             {% include '@SgDatatables/datatable/callbacks.html.twig' %}
         };
 
-        var extensions = {
-            {{ sg_datatable_extensions_render(sg_datatables_view) }}
-        };
+        var extensions = {{ sg_datatable_extensions_render(sg_datatables_view) }};
 
         var columns = {
             {% include '@SgDatatables/datatable/columns.html.twig' %}

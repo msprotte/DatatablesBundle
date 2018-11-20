@@ -60,12 +60,14 @@
 {% set cancel_button_js %}
     {% if true == column.filter.cancelButton %}
         <script type="text/javascript">
-            $("#{{ cancel_button_id_selector }}").click(function() {
-                if ('' != $("#{{ filter_id_selector }}").val()) {
-                    $("#{{ filter_id_selector }}")
-                        .val('')
-                        .change();
-                }
+            document.addEventListener("DOMContentLoaded", function(event) {
+                $("#{{ cancel_button_id_selector }}").click(function() {
+                    if ('' != $("#{{ filter_id_selector }}").val()) {
+                        $("#{{ filter_id_selector }}")
+                            .val('')
+                            .change();
+                    }
+                });
             });
         </script>
     {% endif %}
@@ -86,24 +88,26 @@
 
 {% block javascript %}
     <script type="text/javascript">
-        moment.locale("{{ app.request.locale }}");
-        $("#{{ filter_id_selector }}").daterangepicker({
-            autoUpdateInput: false,
-            locale: {
-                format: "{{ 'sg.datatables.daterange.format'|trans({}, 'messages') }}",
-                applyLabel: "{{ 'sg.datatables.daterange.apply'|trans({}, 'messages') }}",
-                cancelLabel: "{{ 'sg.datatables.daterange.cancel'|trans({}, 'messages') }}",
-                daysOfWeek: moment.weekdaysMin(),
-                monthNames: moment.monthsShort(),
-                firstDay: moment.localeData().firstDayOfWeek()
-            }
-        }).on('cancel.daterangepicker', function (ev, picker) {
-            $(this).val('');
-            $(this).change();
-          })
-          .on('apply.daterangepicker', function (ev, picker) {
-                $(this).val(picker.startDate.format("{{ 'sg.datatables.daterange.format'|trans({}, 'messages') }}") + ' - ' + picker.endDate.format("{{ 'sg.datatables.daterange.format'|trans({}, 'messages') }}"));
+        document.addEventListener("DOMContentLoaded", function(event) {
+            moment.locale("{{ app.request.locale }}");
+            $("#{{ filter_id_selector }}").daterangepicker({
+                autoUpdateInput: false,
+                locale: {
+                    format: "{{ 'sg.datatables.daterange.format'|trans({}, 'messages') }}",
+                    applyLabel: "{{ 'sg.datatables.daterange.apply'|trans({}, 'messages') }}",
+                    cancelLabel: "{{ 'sg.datatables.daterange.cancel'|trans({}, 'messages') }}",
+                    daysOfWeek: moment.weekdaysMin(),
+                    monthNames: moment.monthsShort(),
+                    firstDay: moment.localeData().firstDayOfWeek()
+                }
+            }).on('cancel.daterangepicker', function (ev, picker) {
+                $(this).val('');
                 $(this).change();
+              })
+              .on('apply.daterangepicker', function (ev, picker) {
+                    $(this).val(picker.startDate.format("{{ 'sg.datatables.daterange.format'|trans({}, 'messages') }}") + ' - ' + picker.endDate.format("{{ 'sg.datatables.daterange.format'|trans({}, 'messages') }}"));
+                    $(this).change();
+              });
           });
     </script>
     {{ cancel_button_js }}
