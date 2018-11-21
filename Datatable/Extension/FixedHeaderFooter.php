@@ -12,6 +12,9 @@ class FixedHeaderFooter extends AbstractExtension
     /** @var bool */
     protected $footer;
 
+    /** @var int */
+    protected $headerOffset;
+
     public function __construct()
     {
         parent::__construct('fixedHeader');
@@ -27,10 +30,12 @@ class FixedHeaderFooter extends AbstractExtension
         $resolver->setDefaults([
             'header' => false,
             'footer' => false,
+            'headerOffset' => 0,
         ]);
 
         $resolver->setAllowedTypes('header', ['bool', 'false']);
         $resolver->setAllowedTypes('footer', ['bool', 'false']);
+        $resolver->setAllowedTypes('headerOffset', 'int');
 
         return $this;
     }
@@ -76,17 +81,33 @@ class FixedHeaderFooter extends AbstractExtension
     }
 
     /**
+     * @return int
+     */
+    public function getHeaderOffset(): int
+    {
+        return $this->headerOffset;
+    }
+
+    /**
+     * @param int $headerOffset
+     *
+     * @return FixedHeaderFooter
+     */
+    public function setHeaderOffset(int $headerOffset): self
+    {
+        $this->headerOffset = $headerOffset;
+
+        return $this;
+    }
+
+    /**
      * @inheritdoc
      */
     public function getJavaScriptConfiguration(array $config = []): array
     {
-        if ($this->getHeader() !== null) {
-            $config['header'] = $this->getHeader();
-        }
-
-        if ($this->getFooter() !== null) {
-            $config['footer'] = $this->getFooter();
-        }
+        $config['header'] = $this->getHeader();
+        $config['footer'] = $this->getFooter();
+        $config['headerOffset'] = $this->getHeaderOffset();
 
         return parent::getJavaScriptConfiguration($config);
     }
