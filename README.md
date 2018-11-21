@@ -18,6 +18,20 @@
 
 [Demo Application for v1.0](https://github.com/stwe/DtBundleDemo10)
 
+## Info about this fork
+Our company used this for our new product that has been created. We always have some optimizations done but everything in our project. We now wanted to share this stuff with all of you and want you to work with us. Feel free to update / bugfix stuff and so on. We are looking forward to maintain this also in the future.
+
+## New Stuff in this fork
+* Extensions are changed to be quicker adding a new extension to the bundle
+* Added fixed Header / Footer Extension for Datatable
+* Refactored stuff to be more clean code
+* Changed private properties to be protected. In some ways you/we want to extend some stuff for "reasons"
+* Elasticsearch Support - This is not totally done yet. It is just a very hacky way to use the elasticabundle with this datatablesbundle. We currently only use this to visualize tables. No filtering included yet. Feel free to extend
+* Extended the composer.json for the really needed requirements
+
+##!!!!! This is WIP !!!!!
+So the documentation is not correct at all in the current moment.
+
 ## Info about PostgreSQL
 
 **Hey folks. Bad news: I'm not working with PostgreSQL. I have no idea about it and therefore can not write any good software supporting PostgreSQL. 
