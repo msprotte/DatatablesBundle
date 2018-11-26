@@ -11,91 +11,46 @@
 
 namespace Sg\DatatablesBundle\Datatable\Extension;
 
-use Sg\DatatablesBundle\Datatable\OptionsTrait;
-
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Exception;
 
-/**
- * Class Buttons
- *
- * @package Sg\DatatablesBundle\Datatable\Extension
- */
-class Buttons
+class Buttons extends AbstractExtension
 {
-    /**
-     * Use the OptionsResolver.
-     */
-    use OptionsTrait;
-
-    //-------------------------------------------------
-    // DataTables - Buttons Extension
-    //-------------------------------------------------
-
-    /**
-     * List of built-in buttons to show.
-     * Default: null
-     *
-     * @var array|null
-     */
+    /** @var array|null */
     protected $showButtons;
 
-    /**
-     * List of buttons to be created.
-     * Default: null
-     *
-     * @var array|null
-     */
+    /** @var array|Button[]|null */
     protected $createButtons;
 
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
-
-    /**
-     * Buttons constructor.
-     */
     public function __construct()
     {
-        $this->initOptions();
+        parent::__construct('buttons');
     }
 
-    //-------------------------------------------------
-    // Options
-    //-------------------------------------------------
-
     /**
-     * Config options.
-     *
      * @param OptionsResolver $resolver
      *
      * @return $this
      */
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): ExtensionInterface
     {
-        $resolver->setDefaults(array(
+        $resolver->setDefaults([
             'show_buttons' => null,
             'create_buttons' => null,
-        ));
+        ]);
 
-        $resolver->setAllowedTypes('show_buttons', array('null', 'array'));
-        $resolver->setAllowedTypes('create_buttons', array('null', 'array'));
+        $resolver->setAllowedTypes('show_buttons', ['null', 'array']);
+        $resolver->setAllowedTypes('create_buttons', ['null', 'array']);
 
         return $this;
     }
 
-    //-------------------------------------------------
-    // Getters && Setters
-    //-------------------------------------------------
-
     /**
-     * Get showButtons.
-     *
      * @return array|null
      */
     public function getShowButtons()
     {
-        if (is_array($this->showButtons)) {
+        if (\is_array($this->showButtons)) {
             return $this->optionToJson($this->showButtons);
         }
 
@@ -103,13 +58,11 @@ class Buttons
     }
 
     /**
-     * Set showButtons.
-     *
      * @param array|null $showButtons
      *
      * @return $this
      */
-    public function setShowButtons($showButtons)
+    public function setShowButtons($showButtons): self
     {
         $this->showButtons = $showButtons;
 
@@ -117,9 +70,7 @@ class Buttons
     }
 
     /**
-     * Get createButtons.
-     *
-     * @return array|null
+     * @return array|Button[]|null
      */
     public function getCreateButtons()
     {
@@ -127,28 +78,60 @@ class Buttons
     }
 
     /**
-     * Set createButtons.
-     *
+     * @return array|null
+     */
+    public function getCreateButtonsForJavaScriptConfiguration()
+    {
+        $createButtons = [];
+        if (\is_array($this->getCreateButtons())) {
+            foreach ($this->getCreateButtons() as $button) {
+                /** @var Button $button */
+                $createButtons[] = $button->getJavaScriptConfiguration();
+            }
+        }
+
+        return $createButtons;
+    }
+
+    /**
      * @param array|null $createButtons
      *
      * @return $this
      * @throws Exception
      */
-    public function setCreateButtons($createButtons)
+    public function setCreateButtons($createButtons): self
     {
-        if (is_array($createButtons)) {
-            if (count($createButtons) > 0) {
+        if (\is_array($createButtons)) {
+            if (\count($createButtons) > 0) {
                 foreach ($createButtons as $button) {
                     $newButton = new Button();
                     $this->createButtons[] = $newButton->set($button);
                 }
             } else {
-                throw new Exception('Buttons::setCreateButtons(): The createButtons array should contain at least one element.');
+                throw new \UnexpectedValueException('Buttons::setCreateButtons(): The createButtons array should contain at least one element.');
             }
         } else {
             $this->createButtons = $createButtons;
         }
 
         return $this;
+    }
+
+    /**
+     * @param array $config
+     *
+     * @return array
+     */
+    public function getJavaScriptConfiguration(array $config = []): array
+    {
+        if (null !== $this->getCreateButtons()) {
+            $config['createButtons'] = $this->getCreateButtonsForJavaScriptConfiguration();
+        }
+
+        if (null !== $this->getShowButtons()) {
+            $config['showButtons'] = $this->getShowButtons();
+        }
+
+        return parent::getJavaScriptConfiguration($config);
     }
 }

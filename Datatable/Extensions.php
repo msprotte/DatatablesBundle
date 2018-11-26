@@ -12,27 +12,18 @@
 namespace Sg\DatatablesBundle\Datatable;
 
 use Sg\DatatablesBundle\Datatable\Extension\Buttons;
+use Sg\DatatablesBundle\Datatable\Extension\Exception\ExtensionAlreadyRegisteredException;
+use Sg\DatatablesBundle\Datatable\Extension\ExtensionInterface;
+use Sg\DatatablesBundle\Datatable\Extension\FixedHeaderFooter;
 use Sg\DatatablesBundle\Datatable\Extension\Responsive;
 use Sg\DatatablesBundle\Datatable\Extension\Select;
 use Sg\DatatablesBundle\Datatable\Extension\RowGroup;
 
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-/**
- * Class Extensions
- *
- * @package Sg\DatatablesBundle\Datatable
- */
 class Extensions
 {
-    /**
-     * Use the OptionsResolver.
-     */
     use OptionsTrait;
-
-    //-------------------------------------------------
-    // DataTables - Extensions
-    //-------------------------------------------------
 
     /**
      * The Buttons extension.
@@ -69,53 +60,45 @@ class Extensions
      */
     protected $rowGroup;
 
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
+    /** @var array|ExtensionInterface[] */
+    protected $extensions = [];
 
-    /**
-     * Extensions constructor.
-     */
+    /** @var FixedHeaderFooter */
+    protected $fixedHeaderFooter;
+
     public function __construct()
     {
         $this->initOptions();
     }
 
-    //-------------------------------------------------
-    // Options
-    //-------------------------------------------------
-
     /**
-     * Config options.
-     *
      * @param OptionsResolver $resolver
      *
      * @return $this
      */
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): self
     {
-        $resolver->setDefaults(array(
+        $resolver->setDefaults([
             'buttons' => null,
             'responsive' => null,
             'select' => null,
             'row_group' => null,
-        ));
+        ]);
 
-        $resolver->setAllowedTypes('buttons', array('null', 'array', 'bool'));
-        $resolver->setAllowedTypes('responsive', array('null', 'array', 'bool'));
-        $resolver->setAllowedTypes('select', array('null', 'array', 'bool'));
-        $resolver->setAllowedTypes('row_group', array('null', 'array', 'bool'));
+        $resolver->setAllowedTypes('buttons', ['null', 'array', 'bool']);
+        $resolver->setAllowedTypes('responsive', ['null', 'array', 'bool']);
+        $resolver->setAllowedTypes('select', ['null', 'array', 'bool']);
+        $resolver->setAllowedTypes('row_group', ['null', 'array', 'bool']);
+
+        foreach ($this->extensions as $name => $extension) {
+            $resolver->setDefault($name, null);
+            $resolver->addAllowedTypes($name, ['null', 'array', 'bool']);
+        }
 
         return $this;
     }
 
-    //-------------------------------------------------
-    // Getters && Setters
-    //-------------------------------------------------
-
     /**
-     * Get buttons.
-     *
      * @return null|array|bool|Buttons
      */
     public function getButtons()
@@ -124,15 +107,14 @@ class Extensions
     }
 
     /**
-     * Set buttons.
-     *
      * @param null|array|bool $buttons
      *
      * @return $this
+     * @throws \Exception
      */
     public function setButtons($buttons)
     {
-        if (is_array($buttons)) {
+        if (\is_array($buttons)) {
             $newButton = new Buttons();
             $this->buttons = $newButton->set($buttons);
         } else {
@@ -143,8 +125,6 @@ class Extensions
     }
 
     /**
-     * Get responsive.
-     *
      * @return null|array|bool|Responsive
      */
     public function getResponsive()
@@ -153,8 +133,6 @@ class Extensions
     }
 
     /**
-     * Set responsive.
-     *
      * @param null|array|bool $responsive
      *
      * @return $this
@@ -172,8 +150,93 @@ class Extensions
     }
 
     /**
-     * Get select.
+     * @param ExtensionInterface $extension
      *
+     * @return Extensions
+     * @throws \Exception
+     */
+    public function addExtension(ExtensionInterface $extension): self
+    {
+        $extName = $extension->getName();
+        if ($this->hasExtension($extName)) {
+            throw new ExtensionAlreadyRegisteredException(
+                sprintf(
+                    'Extension with name "%s" already registered',
+                    $extName
+                )
+            );
+        }
+
+        $this->extensions[$extName] = $extension;
+
+        return $this;
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return ExtensionInterface
+     * @throws \Exception
+     */
+    public function getExtension(string $name): ExtensionInterface
+    {
+        if (!$this->hasExtension($name)) {
+            throw new ExtensionAlreadyRegisteredException(
+                sprintf(
+                    'Extension with name "%s" already registered',
+                    $name
+                )
+            );
+        }
+
+        return $this->extensions[$name];
+    }
+
+    /**
+     * @param string $name
+     *
+     * @throws \Exception
+     */
+    public function enableExtension(string $name)
+    {
+        $this->getExtension($name)->setEnabled(true);
+    }
+
+    /**
+     * @param string $name
+     * @param array|bool $options
+     *
+     * @return $this
+     * @throws \Exception
+     */
+    public function setExtensionOptions(string $name, array $options): self
+    {
+        $extension = $this->getExtension($name);
+        $extension->setEnabled(true);
+        $extension->setOptions($options);
+
+        return $this;
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function hasExtension(string $name): bool
+    {
+        return array_key_exists($name, $this->extensions);
+    }
+
+    /**
+     * @return array|ExtensionInterface[]
+     */
+    public function getExtensions(): array
+    {
+        return $this->extensions;
+    }
+
+    /**
      * @return null|array|bool|Select
      */
     public function getSelect()
@@ -182,8 +245,6 @@ class Extensions
     }
 
     /**
-     * Set select.
-     *
      * @param null|array|bool $select
      *
      * @return $this
@@ -214,6 +275,7 @@ class Extensions
      * Set rowGroup.
      *
      * @param null|array|bool $rowGroup
+     *
      * @return $this
      * @throws \Exception
      */

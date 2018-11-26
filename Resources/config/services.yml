@@ -15,6 +15,18 @@ services:
             - '@router'
             - '@doctrine.orm.entity_manager'
             - '@twig'
+            - '@sg_datatables.extension_registry'
+
+    sg_datatables.extension_registry:
+        class: Sg\DatatablesBundle\Datatable\Extensions
+        public: false
+        calls:
+            - ['addExtension',['@sg_datatables.extension.button']]
+            - ['addExtension',['@sg_datatables.extension.buttons']]
+            - ['addExtension',['@sg_datatables.extension.fixed_header']]
+            - ['addExtension',['@sg_datatables.extension.responsive']]
+            - ['addExtension',['@sg_datatables.extension.row_group']]
+            - ['addExtension',['@sg_datatables.extension.select']]
 
     sg_datatables.response: #DEPRECATED
         class: Sg\DatatablesBundle\Response\Doctrine\DatatableResponse
@@ -42,3 +54,22 @@ services:
             - '@router'
             - '@doctrine.orm.entity_manager'
             - '@twig'
+
+    sg_datatables.extension.fixed_header:
+        class: Sg\DatatablesBundle\Datatable\Extension\FixedHeaderFooter
+
+    sg_datatables.extension.select:
+        class: Sg\DatatablesBundle\Datatable\Extension\Select
+
+    sg_datatables.extension.button:
+        class: Sg\DatatablesBundle\Datatable\Extension\Button
+
+    sg_datatables.extension.buttons:
+        class: Sg\DatatablesBundle\Datatable\Extension\Buttons
+
+    sg_datatables.extension.responsive:
+        class: Sg\DatatablesBundle\Datatable\Extension\Responsive
+
+    sg_datatables.extension.row_group:
+        class: Sg\DatatablesBundle\Datatable\Extension\RowGroup
+
