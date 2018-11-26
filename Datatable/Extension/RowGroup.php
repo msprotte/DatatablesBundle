@@ -11,115 +11,42 @@
 
 namespace Sg\DatatablesBundle\Datatable\Extension;
 
-use Sg\DatatablesBundle\Datatable\OptionsTrait;
-
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Exception;
 
-/**
- * Class RowGroup
- *
- * @package Sg\DatatablesBundle\Datatable\Extension
- */
-class RowGroup
+class RowGroup extends AbstractExtension
 {
-    /**
-     * Use the OptionsResolver.
-     */
-    use OptionsTrait;
-
-    //-------------------------------------------------
-    // DataTables - RowGroup Extension
-    //-------------------------------------------------
-
-    /**
-     * The data point to get the grouping information.
-     * Required option.
-     *
-     * @var string
-     */
+    /** @var string */
     protected $dataSrc;
 
-    /**
-     * Provide a function that can be used to control the data shown in the start grouping row.
-     * Optional.
-     *
-     * @var array
-     */
+    /** @var array */
     protected $startRender;
 
-    /**
-     * Provide a function that can be used to control the data shown in the end grouping row.
-     * Optional.
-     *
-     * @var array
-     */
+    /** @var array */
     protected $endRender;
 
-    /**
-     * Set the class name to be used for the grouping rows.
-     * Optional.
-     *
-     * @var string
-     */
+    /** @var string */
     protected $className;
 
-    /**
-     * Text to show for rows which have null or undefined group data.
-     * Optional.
-     *
-     * @var string
-     */
+    /** @var string */
     protected $emptyDataGroup;
 
-    /**
-     * Provides the ability to disable row grouping at initialisation
-     * Optional.
-     *
-     * @var bool
-     */
-    protected $enable;
-
-    /**
-     * Set the class name to be used for the grouping end rows
-     * Optional.
-     *
-     * @var string
-     */
+    /** @var string */
     protected $endClassName;
 
-    /**
-     * Set the class name to be used for the grouping start rows
-     * Optional.
-     *
-     * @var string
-     */
+    /** @var string */
     protected $startClassName;
 
-    //-------------------------------------------------
-    // Ctor.
-    //-------------------------------------------------
-
-    /**
-     * RowGroup constructor.
-     */
     public function __construct()
     {
-        $this->initOptions();
+        parent::__construct('rowGroup');
     }
 
-    //-------------------------------------------------
-    // Options
-    //-------------------------------------------------
-
     /**
-     * Config options.
-     *
      * @param OptionsResolver $resolver
      *
      * @return $this
      */
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): ExtensionInterface
     {
         $resolver->setRequired('data_src');
         $resolver->setDefined('start_render');
@@ -130,30 +57,24 @@ class RowGroup
         $resolver->setDefined('end_class_name');
         $resolver->setDefined('start_class_name');
 
-        $resolver->setDefaults(array(
+        $resolver->setDefaults([
             'enable' => true,
-        ));
+        ]);
 
-        $resolver->setAllowedTypes('data_src', array('string'));
-        $resolver->setAllowedTypes('start_render', array('array'));
-        $resolver->setAllowedTypes('end_render', array('array'));
-        $resolver->setAllowedTypes('enable', array('bool'));
-        $resolver->setAllowedTypes('class_name', array('string'));
-        $resolver->setAllowedTypes('empty_data_group', array('string'));
-        $resolver->setAllowedTypes('end_class_name', array('string'));
-        $resolver->setAllowedTypes('start_class_name', array('string'));
+        $resolver->setAllowedTypes('data_src', ['string']);
+        $resolver->setAllowedTypes('start_render', ['array']);
+        $resolver->setAllowedTypes('end_render', ['array']);
+        $resolver->setAllowedTypes('enable', ['bool']);
+        $resolver->setAllowedTypes('class_name', ['string']);
+        $resolver->setAllowedTypes('empty_data_group', ['string']);
+        $resolver->setAllowedTypes('end_class_name', ['string']);
+        $resolver->setAllowedTypes('start_class_name', ['string']);
 
         return $this;
     }
 
-    //-------------------------------------------------
-    // Getters && Setters
-    //-------------------------------------------------
-
     /**
-     * Get details.
-     *
-     * @return string
+     * @return string|null
      */
     public function getDataSrc()
     {
@@ -161,18 +82,15 @@ class RowGroup
     }
 
     /**
-     * Set details.
-     *
      * @param string $dataSrc
      *
      * @return $this
-     * @throws Exception
      */
-    public function setDataSrc($dataSrc)
+    public function setDataSrc($dataSrc): self
     {
-        if (is_string($dataSrc) && empty($dataSrc)) {
-            throw new \Exception(
-                "RowGroup::setDataSrc(): the column name is empty."
+        if (\is_string($dataSrc) && empty($dataSrc)) {
+            throw new \UnexpectedValueException(
+                'RowGroup::setDataSrc(): the column name is empty.'
             );
         }
 
@@ -182,7 +100,7 @@ class RowGroup
     }
 
     /**
-     * @return string
+     * @return array|null
      */
     public function getStartRender()
     {
@@ -190,21 +108,22 @@ class RowGroup
     }
 
     /**
-     * @param string $startRender
+     * @param array $startRender
+     *
      * @return RowGroup
      */
-    public function setStartRender($startRender)
+    public function setStartRender($startRender): self
     {
         if (false === array_key_exists('template', $startRender)) {
-            throw new Exception(
+            throw new \UnexpectedValueException(
                 'RowGroup::setStartRender(): The "template" option is required.'
             );
         }
 
         foreach ($startRender as $key => $value) {
-            if (false === in_array($key, array('template', 'vars',))) {
-                throw new Exception(
-                    "RowGroup::setStartRender(): $key is not a valid option."
+            if (false === \in_array($key, ['template', 'vars',])) {
+                throw new \UnexpectedValueException(
+                    'RowGroup::setStartRender(): ' . $key . ' is not a valid option.'
                 );
             }
         }
@@ -215,7 +134,7 @@ class RowGroup
     }
 
     /**
-     * @return string
+     * @return array|null
      */
     public function getEndRender()
     {
@@ -223,21 +142,22 @@ class RowGroup
     }
 
     /**
-     * @param string $endRender
+     * @param array $endRender
+     *
      * @return RowGroup
      */
-    public function setEndRender($endRender)
+    public function setEndRender($endRender): self
     {
-        if (false === array_key_exists('template', $startRender)) {
-            throw new Exception(
+        if (false === array_key_exists('template', $endRender)) {
+            throw new \UnexpectedValueException(
                 'RowGroup::setEndRender(): The "template" option is required.'
             );
         }
 
-        foreach ($startRender as $key => $value) {
-            if (false === in_array($key, array('template', 'vars',))) {
-                throw new Exception(
-                    "RowGroup::setEndRender(): $key is not a valid option."
+        foreach ($endRender as $key => $value) {
+            if (false === \in_array($key, ['template', 'vars',])) {
+                throw new \UnexpectedValueException(
+                    'RowGroup::setEndRender(): ' . $key . ' is not a valid option.'
                 );
             }
         }
@@ -248,7 +168,7 @@ class RowGroup
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getClassName()
     {
@@ -257,13 +177,14 @@ class RowGroup
 
     /**
      * @param string $className
+     *
      * @return RowGroup
      */
-    public function setClassName($className)
+    public function setClassName($className): self
     {
-        if (is_string($className) && empty($className)) {
-            throw new \Exception(
-                "RowGroup::setClassName(): the class name is empty."
+        if (\is_string($className) && empty($className)) {
+            throw new \UnexpectedValueException(
+                'RowGroup::setClassName(): the class name is empty.'
             );
         }
 
@@ -273,7 +194,7 @@ class RowGroup
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getEmptyDataGroup()
     {
@@ -282,13 +203,14 @@ class RowGroup
 
     /**
      * @param string $emptyDataGroup
+     *
      * @return RowGroup
      */
-    public function setEmptyDataGroup($emptyDataGroup)
+    public function setEmptyDataGroup($emptyDataGroup): self
     {
-        if (is_string($emptyDataGroup) && empty($emptyDataGroup)) {
-            throw new \Exception(
-                "RowGroup::setEmptyDataGroup(): the empty data group text is empty."
+        if (\is_string($emptyDataGroup) && empty($emptyDataGroup)) {
+            throw new \UnexpectedValueException(
+                'RowGroup::setEmptyDataGroup(): the empty data group text is empty.'
             );
         }
 
@@ -298,26 +220,7 @@ class RowGroup
     }
 
     /**
-     * @return bool
-     */
-    public function getEnable()
-    {
-        return $this->enable;
-    }
-
-    /**
-     * @param bool $enable
-     * @return RowGroup
-     */
-    public function setEnable($enable)
-    {
-        $this->enable = $enable;
-
-        return $this;
-    }
-
-    /**
-     * @return string
+     * @return string|null
      */
     public function getEndClassName()
     {
@@ -326,13 +229,14 @@ class RowGroup
 
     /**
      * @param string $endClassName
+     *
      * @return RowGroup
      */
-    public function setEndClassName($endClassName)
+    public function setEndClassName($endClassName): self
     {
-        if (is_string($endClassName) && empty($endClassName)) {
-            throw new \Exception(
-                "RowGroup::setEndClassName(): the end class name is empty."
+        if (\is_string($endClassName) && empty($endClassName)) {
+            throw new \UnexpectedValueException(
+                'RowGroup::setEndClassName(): the end class name is empty.'
             );
         }
 
@@ -342,7 +246,7 @@ class RowGroup
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getStartClassName()
     {
@@ -351,18 +255,53 @@ class RowGroup
 
     /**
      * @param string $startClassName
+     *
      * @return RowGroup
      */
-    public function setStartClassName($startClassName)
+    public function setStartClassName($startClassName): self
     {
-        if (is_string($startClassName) && empty($startClassName)) {
-            throw new \Exception(
-                "RowGroup::setStartClassName(): the start class name is empty."
+        if (\is_string($startClassName) && empty($startClassName)) {
+            throw new \UnexpectedValueException(
+                'RowGroup::setStartClassName(): the start class name is empty.'
             );
         }
 
         $this->startClassName = $startClassName;
 
         return $this;
+    }
+
+    /**
+     * @param array $config
+     *
+     * @return array
+     */
+    public function getJavaScriptConfiguration(array $config = []): array
+    {
+        if (null !== $this->getDataSrc()) {
+            $config['dataSrc'] = $this->getDataSrc();
+        }
+
+        if (null !== $this->getEmptyDataGroup()) {
+            $config['emptyDataGroup'] = $this->getEmptyDataGroup();
+        }
+
+        if (null !== $this->getEndClassName()) {
+            $config['endClassName'] = $this->getEndClassName();
+        }
+
+        if (null !== $this->getEndRender()) {
+            $config['endRender'] = $this->getEndRender();
+        }
+
+        if (null !== $this->getStartClassName()) {
+            $config['startClassName'] = $this->getStartClassName();
+        }
+
+        if (null !== $this->getStartRender()) {
+            $config['startRender'] = $this->getStartRender();
+        }
+
+        return parent::getJavaScriptConfiguration($config); // TODO: Change the autogenerated stub
     }
 }

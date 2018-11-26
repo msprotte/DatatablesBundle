@@ -9,60 +9,63 @@
 {% extends '@SgDatatables/filter/select.html.twig' %}
 
 {% block javascript %}
-    {{ parent() }}
+{{ parent() }}
 
-    <script type="text/javascript">
-        $("#{{ filter_id_selector }}").select2({
-            {% if column.filter.placeholder is not same as(null) %}
-                placeholder: "{{ column.filter.placeholder }}",
-            {% endif %}
-            {% if column.filter.allowClear is not same as(null) %}
-                allowClear: {{ column.filter.allowClear|sg_datatables_bool_var }},
-            {% endif %}
-            {% if column.filter.tags is not same as(null) %}
-                tags: {{ column.filter.tags|sg_datatables_bool_var }},
-            {% endif %}
-            {% if column.filter.language is not same as(null) %}
-                language: "{{ column.filter.language }}",
-            {% else %}
-                language: "{{ app.request.locale }}",
-            {% endif %}
-            dropdownAutoWidth : true,
-            {% if column.filter.url is not same as(null) %}
-                ajax: {
-                    url: "{{ path(column.filter.url) }}",
-                    dataType: 'json',
-                    delay: {{ column.filter.delay }},
-                    cache: {{ column.filter.cache|sg_datatables_bool_var }},
-                    data: function (params) {
-                        return {
-                            q: params.term,
-                            page: params.page
-                        };
-                    },
-                    processResults: function (data, params) {
-                        params.page = params.page || 1;
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function(event) {
 
-                        var resultArray = [];
-                        for (var id in data) {
-                            resultArray.push({
-                                id : data[id],
-                                text : data[id]
-                            });
-                        }
-
-                        return {
-                            results: resultArray,
-                            pagination: {
-                                more: (params.page * 30) < data.total_count
-                            }
-                        };
-                    }
-                },
-            {% endif %}
-        });
-        {% if column.filter.searchColumn %}
-            $("#{{ filter_id_selector }}").val($('#{{ filter_id_selector }} option:first-child').val()).trigger('change');
+    $("#{{ filter_id_selector }}").select2({
+        {% if column.filter.placeholder is not same as(null) %}
+            placeholder: "{{ column.filter.placeholder }}",
         {% endif %}
-    </script>
+        {% if column.filter.allowClear is not same as(null) %}
+            allowClear: {{ column.filter.allowClear|sg_datatables_bool_var }},
+        {% endif %}
+        {% if column.filter.tags is not same as(null) %}
+            tags: {{ column.filter.tags|sg_datatables_bool_var }},
+        {% endif %}
+        {% if column.filter.language is not same as(null) %}
+            language: "{{ column.filter.language }}",
+        {% else %}
+            language: "{{ app.request.locale }}",
+        {% endif %}
+        dropdownAutoWidth : true,
+        {% if column.filter.url is not same as(null) %}
+            ajax: {
+                url: "{{ path(column.filter.url) }}",
+                dataType: 'json',
+                delay: {{ column.filter.delay }},
+                cache: {{ column.filter.cache|sg_datatables_bool_var }},
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page
+                    };
+                },
+                processResults: function (data, params) {
+                    params.page = params.page || 1;
+
+                    var resultArray = [];
+                    for (var id in data) {
+                        resultArray.push({
+                            id : data[id],
+                            text : data[id]
+                        });
+                    }
+
+                    return {
+                        results: resultArray,
+                        pagination: {
+                            more: (params.page * 30) < data.total_count
+                        }
+                    };
+                }
+            },
+        {% endif %}
+    });
+    {% if column.filter.searchColumn %}
+        $("#{{ filter_id_selector }}").val($('#{{ filter_id_selector }} option:first-child').val()).trigger('change');
+    {% endif %}
+    });
+</script>
 {% endblock %}

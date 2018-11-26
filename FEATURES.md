@@ -44,6 +44,8 @@ DateRange Filter
 
 Select2 Filter
 
+Fixed Header/Footer Filter
+
 ## Styling
 
 The Bundle is optimized for use with the Bootstrap-Framework.
