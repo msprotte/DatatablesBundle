@@ -91,7 +91,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param BoolQuery $query
      *
-     * @return ElasticaDatatableTransactionQueryBuilder
+     * @return DatatableQueryBuilder
      */
     protected function addGlobalSearchTerms(BoolQuery $query): self
     {
@@ -102,10 +102,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 if ($column === null) {
                     continue;
                 }
+                /** @var AbstractColumn $currentCol */
                 $currentCol = $this->columns[$key];
-                if (!$currentCol instanceof Column) {
-                    continue;
-                }
 
                 switch ($currentCol->getTypeOfField()) {
                     case 'integer':
