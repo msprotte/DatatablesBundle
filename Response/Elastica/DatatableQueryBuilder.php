@@ -227,6 +227,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
         $boolQuery = new BoolQuery();
         $this->setTermsFilters($boolQuery);
+        $this->addGlobalSearchTerms($boolQuery);
         $query->setQuery($boolQuery);
         $this->setOrderBy($query);
 
