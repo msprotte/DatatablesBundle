@@ -15,4 +15,9 @@ interface ModelDefinitionInterface
      * @return self
      */
     public function setSearch(array $search): self;
+
+    /**
+     * @return array
+     */
+    public function getSearch(): array;
 }
