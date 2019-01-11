@@ -111,7 +111,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                         $this->createIntegerShouldTerm($searchParams['value'], $column, $filterQueries);
                         break;
                     case 'string':
-                        $filterQueries->addShould(new Query\Regexp($column, '.*' . $searchParams['value'] . '.*'));
+                        $filterQueries->addShould(new Query\Regexp($column,
+                            '.*' . strtolower($searchParams['value']) . '.*'));
                         break;
                     default:
                         break;
