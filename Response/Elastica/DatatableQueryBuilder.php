@@ -4,6 +4,7 @@ namespace Sg\DatatablesBundle\Response\Elastica;
 
 use Doctrine\Common\Persistence\Mapping\ClassMetadata;
 use Elastica\Query;
+use Elastica\Query\Terms;
 use Elastica\Query\BoolQuery;
 use FOS\ElasticaBundle\Finder\PaginatedFinderInterface;
 use FOS\ElasticaBundle\HybridResult;
