@@ -89,6 +89,56 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
+     * @param BoolQuery $query
+     *
+     * @return ElasticaDatatableTransactionQueryBuilder
+     */
+    protected function addGlobalSearchTerms(BoolQuery $query): self
+    {
+        if ($this->modelDefinition->hasSearch()) {
+            $searchParams = $this->modelDefinition->getSearch();
+            $filterQueries = new BoolQuery();
+            foreach ($this->searchColumns as $key => $column) {
+                if ($column === null) {
+                    continue;
+                }
+                $currentCol = $this->columns[$key];
+                if (!$currentCol instanceof Column) {
+                    continue;
+                }
+
+                switch ($currentCol->getTypeOfField()) {
+                    case 'integer':
+                        $this->createIntegerShouldTerm($searchParams['value'], $column, $filterQueries);
+                        break;
+                    case 'string':
+                        $filterQueries->addShould(new Query\Regexp($column, '.*' . $searchParams['value'] . '.*'));
+                        break;
+                    default:
+                        break;
+                }
+            }
+            $query->addMust($filterQueries);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param int $value
+     * @param string $column
+     * @param BoolQuery $filterQueries
+     */
+    protected function createIntegerShouldTerm($value, string $column, BoolQuery $filterQueries)
+    {
+        if ((int)$value !== 0) {
+            $integerTerm = new Terms();
+            $integerTerm->setTerms($column, [(int)$value]);
+            $filterQueries->addShould($integerTerm);
+        }
+    }
+
+    /**
      * @param AbstractColumn $column
      *
      * @return $this
