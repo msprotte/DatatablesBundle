@@ -9,7 +9,6 @@ use Elastica\Query\BoolQuery;
 use FOS\ElasticaBundle\Finder\PaginatedFinderInterface;
 use FOS\ElasticaBundle\HybridResult;
 use Sg\DatatablesBundle\Datatable\Column\AbstractColumn;
-use Sg\DatatablesBundle\Datatable\Column\TextColumn;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 
@@ -147,7 +146,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     {
         $col = null;
         if (true === $this->accessor->getValue($column, 'orderable')) {
-            if ($column instanceof TextColumn) {
+            if ($column->getTypeOfField() === 'string') {
                 $col = $column->getData() . '.keyword';
             } else {
                 $col = $column->getData();
