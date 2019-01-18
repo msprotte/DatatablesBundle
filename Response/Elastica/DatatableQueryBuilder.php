@@ -4,21 +4,28 @@ namespace Sg\DatatablesBundle\Response\Elastica;
 
 use Doctrine\Common\Persistence\Mapping\ClassMetadata;
 use Elastica\Query;
+use Elastica\Query\Nested;
 use Elastica\Query\Terms;
 use Elastica\Query\BoolQuery;
 use FOS\ElasticaBundle\Finder\PaginatedFinderInterface;
 use FOS\ElasticaBundle\HybridResult;
-use Sg\DatatablesBundle\Datatable\Column\AbstractColumn;
+use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 
 abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 {
+    const CONDITION_TYPE_SHOULD = 'should';
+    const CONDITION_TYPE_MUST = 'must';
+
     /** @var PaginatedFinderInterface */
     protected $paginatedFinder;
 
     /** @var ModelDefinitionInterface $modelDefinition */
     protected $modelDefinition;
+
+    /** @var array */
+    protected $nestedPaths;
 
     /**
      * @param BoolQuery $query
@@ -46,41 +53,84 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /** nothing needed more than in abstract */
     protected function loadIndividualConstructSettings()
     {
+        $this->nestedPaths = [];
+        $this->selectColumns = [];
+        $this->searchColumns = [];
+        $this->orderColumns = [];
     }
 
     /**
-     * @return AbstractDatatableQueryBuilder
+     * @param string $columnAlias
+     * @param string $path
+     * @return $this
      */
-    protected function initColumnArrays(): AbstractDatatableQueryBuilder
+    protected function addNestedPath(string $columnAlias, $path): self
     {
+        if ($columnAlias !== null && $columnAlias !== '' && $path !== null && strpos($path, '.') !== false) {
+            $pathParts = explode('.', $path);
+            if (count($pathParts) > 1) {
+                $this->nestedPaths[$columnAlias] = implode('.', array_slice($pathParts, 0, -1));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param string $columnAlias
+     * @return string|null
+     */
+    protected function getNestedPath(string $columnAlias)
+    {
+        if ($columnAlias !== '' && isset($this->nestedPaths[$columnAlias])) {
+            return $this->nestedPaths[$columnAlias];
+        }
+        return null;
+    }
+
+    /**
+     * @return $this
+     */
+    protected function initColumnArrays(): self
+    {
+        /**
+         * @var int|string $key
+         * @var ColumnInterface $column
+         */
         foreach ($this->columns as $key => $column) {
-            if (true === $this->accessor->getValue($column, 'customDql')) {
-                $this->addOrderColumn($column);
-                $this->addSearchColumn($column);
-            } elseif (true === $this->accessor->getValue($column, 'selectColumn')) {
-                $this->addSearchOrderColumn($column);
+            $dql = $this->accessor->getValue($column, 'dql');
+            $data = $this->accessor->getValue($column, 'data');
+
+            if ($this->isCustomDql($column)) {
+                $this->addOrderColumn($column, $dql);
+                $this->addSearchColumn($column, $dql);
+            } elseif ($this->isSelectColumn($column)) {
+                $this->addOrderColumn($column, $data);
+                $this->addSearchColumn($column, $data);
             } else {
-                if (
-                    $this->accessor->isReadable($column, 'orderColumn') &&
-                    true === $this->accessor->getValue($column, 'orderable')
+                if ($this->accessor->isReadable($column, 'orderColumn') &&
+                    $this->isOrderableColumn($column)
                 ) {
                     $orderColumn = $this->accessor->getValue($column, 'orderColumn');
-                    $this->orderColumns[] = $orderColumn;
+                    $this->addOrderColumn($column, $orderColumn);
+                } elseif ($this->isOrderableColumn($column)) {
+                    $this->addOrderColumn($column, $data);
                 } else {
-                    $this->orderColumns[] = null;
+                    $this->addOrderColumn($column, null);
                 }
 
-                if (
-                    $this->accessor->isReadable($column, 'searchColumn') &&
-                    true === $this->accessor->getValue($column, 'searchable')
+                if ($this->accessor->isReadable($column, 'searchColumn') &&
+                    $this->isSearchableColumn($column)
                 ) {
                     $searchColumn = $this->accessor->getValue($column, 'searchColumn');
                     if ((substr_count($searchColumn, '.') + 1) < 2) {
                         $searchColumn = $this->entityShortName . '.' . $searchColumn;
                     }
-                    $this->searchColumns[] = $searchColumn;
+                    $this->addSearchColumn($column, $searchColumn);
+                } elseif ($this->isSearchableColumn($column)) {
+                    $this->addSearchColumn($column, $data);
                 } else {
-                    $this->searchColumns[] = null;
+                    $this->addSearchColumn($column, null);
                 }
             }
         }
@@ -91,33 +141,82 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param BoolQuery $query
      *
-     * @return DatatableQueryBuilder
+     * @return $this
      */
-    protected function addGlobalSearchTerms(BoolQuery $query): self
+    protected function addSearchTerms(BoolQuery $query): self
     {
-        if ($this->modelDefinition->hasSearch()) {
-            $searchParams = $this->modelDefinition->getSearch();
+        // global filtering
+        if (isset($this->requestParams['search']) && '' != $this->requestParams['search']['value']) {
+            $searchParams = $this->requestParams['search'];
             $filterQueries = new BoolQuery();
             foreach ($this->searchColumns as $key => $column) {
                 if ($column === null) {
                     continue;
                 }
-                /** @var AbstractColumn $currentCol */
+
+                /** @var ColumnInterface $currentCol */
                 $currentCol = $this->columns[$key];
 
-                switch ($currentCol->getTypeOfField()) {
-                    case 'integer':
-                        $this->createIntegerShouldTerm($searchParams['value'], $column, $filterQueries);
-                        break;
-                    case 'string':
-                        $filterQueries->addShould(new Query\Regexp($column,
-                            '.*' . strtolower($searchParams['value']) . '.*'));
-                        break;
-                    default:
-                        break;
-                }
+                $this->addColumnSearchTerm($filterQueries, $currentCol, $column, $searchParams['value']);
             }
-            $query->addMust($filterQueries);
+            if (!empty($filterQueries->getParams())) {
+                $query->addFilter($filterQueries);
+            }
+        }
+
+        // individual filtering
+        if (true === $this->accessor->getValue($this->options, 'individualFiltering')) {
+            $filterQueries = new BoolQuery();
+            foreach ($this->searchColumns as $key => $column) {
+                if ($column === null) {
+                    continue;
+                }
+
+                /** @var ColumnInterface $currentCol */
+                $currentCol = $this->columns[$key];
+
+                $searchParams = $this->requestParams['columns'][$key]['search'];
+
+                $this->addColumnSearchTerm(
+                    $filterQueries,
+                    $currentCol,
+                    $column,
+                    $searchParams['value'],
+                    self::CONDITION_TYPE_MUST
+                );
+            }
+            if (!empty($filterQueries->getParams())) {
+                $query->addFilter($filterQueries);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param BoolQuery $filterQueries
+     * @param ColumnInterface $column
+     * @param string $columnAlias
+     * @param int|string $value
+     * @param string $conditionType
+     * @return $this
+     */
+    protected function addColumnSearchTerm(
+        BoolQuery $filterQueries,
+        ColumnInterface $column,
+        string $columnAlias,
+        $value,
+        string $conditionType = self::CONDITION_TYPE_SHOULD
+    ): self {
+        switch ($column->getTypeOfField()) {
+            case 'integer':
+                $this->createIntegerShouldTerm($value, $columnAlias, $filterQueries);
+                break;
+            case 'string':
+                $this->createStringFilterTerm($value, $columnAlias, $filterQueries, $conditionType);
+                break;
+            default:
+                break;
         }
 
         return $this;
@@ -125,80 +224,103 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param int $value
-     * @param string $column
+     * @param string $columnAlias
      * @param BoolQuery $filterQueries
      */
-    protected function createIntegerShouldTerm($value, string $column, BoolQuery $filterQueries)
+    protected function createIntegerShouldTerm($value, string $columnAlias, BoolQuery $filterQueries)
     {
-        if ((int)$value !== 0) {
-            $integerTerm = new Terms();
-            $integerTerm->setTerms($column, [(int)$value]);
-            $filterQueries->addShould($integerTerm);
+        if (trim("{$columnAlias}") !== '' && (int)$value !== 0) {
+            /** @var string|null $nestedPath */
+            $nestedPath = $this->getNestedPath($columnAlias);
+            if ($nestedPath !== null) {
+                $currentNested = new Nested();
+                $currentNested->setPath($nestedPath);
+                $currentNestedQuery = new BoolQuery();
+                $integerTerm = new Terms();
+                $integerTerm->setTerms($columnAlias, [(int)$value]);
+                $currentNestedQuery->addShould($integerTerm);
+                $currentNested->setQuery($currentNestedQuery);
+                $filterQueries->addShould($currentNested);
+            } else {
+                $integerTerm = new Terms();
+                $integerTerm->setTerms($columnAlias, [(int)$value]);
+                $filterQueries->addShould($integerTerm);
+            }
         }
     }
 
     /**
-     * @param AbstractColumn $column
-     *
+     * @param int|string $value
+     * @param string $columnAlias
+     * @param BoolQuery $filterQueries
+     * @param string $conditionType
+     */
+    protected function createStringFilterTerm($value, string $columnAlias, BoolQuery $filterQueries, string $conditionType)
+    {
+        if (trim("{$columnAlias}") !== '' && trim("{$value}") !== '') {
+            $conditionFunc = $conditionType === self::CONDITION_TYPE_MUST ? 'addMust' : 'addShould';
+            $regexQuery = new Query\Regexp($columnAlias, '.*' . strtolower($value) . '.*');
+            /** @var string|null $nestedPath */
+            $nestedPath = $this->getNestedPath($columnAlias);
+            if ($nestedPath !== null) {
+                $currentNested = new Nested();
+                $currentNested->setPath($nestedPath);
+                $currentNestedQuery = new BoolQuery();
+                $currentNestedQuery->addShould($regexQuery);
+                $currentNested->setQuery($currentNestedQuery);
+                $filterQueries->$conditionFunc($currentNested);
+            } else {
+                $filterQueries->$conditionFunc($regexQuery);
+            }
+        }
+    }
+
+    /**
+     * @param ColumnInterface
      * @return $this
      */
-    protected function addOrderColumn(AbstractColumn $column): AbstractDatatableQueryBuilder
+    protected function addOrderColumn(ColumnInterface $column, $data): self
     {
         $col = null;
-        if (true === $this->accessor->getValue($column, 'orderable')) {
-            if ($column->getTypeOfField() === 'string') {
-                $col = $column->getData() . '.keyword';
+        if ($data !== null && $this->isOrderableColumn($column)) {
+            if ($column->getTypeOfField() == 'string') {
+                $col = $data . '.keyword';
             } else {
-                $col = $column->getData();
+                $col = $data;
             }
         }
 
-        $this->orderColumns[] = str_replace('[,]', '', $col);
+        $col = str_replace('[,]', '', $col);
+
+        $this->orderColumns[] = $col;
+
+        $this->addNestedPath($col, $data);
 
         return $this;
     }
 
     /**
-     * @param AbstractColumn $column
+     * @param ColumnInterface $column
      *
      * @return $this
      */
-    protected function addSearchColumn(AbstractColumn $column): AbstractDatatableQueryBuilder
+    protected function addSearchColumn(ColumnInterface $column, $data): self
     {
-        $col = null;
-        if (true === $this->accessor->getValue($column, 'searchable')) {
-            $col = $column->getData();
-        }
-        $this->searchColumns[] = str_replace('[,]', '', $col);
+        $col = $this->isSearchableColumn($column) ?  $data : null;
+        $col = str_replace('[,]', '', $col);
+
+        $this->searchColumns[] = $col;
+
+        $this->addNestedPath($col, $data);
 
         return $this;
-    }
-
-    /**
-     * @param AbstractColumn $column
-     *
-     * @return $this
-     */
-    protected function addSearchOrderColumn(AbstractColumn $column): AbstractDatatableQueryBuilder
-    {
-        $this->addOrderColumn($column);
-        $this->addSearchColumn($column);
-
-        return $this;
-    }
-
-    /**
-     * @return int
-     */
-    public function getCountAllResults(): int
-    {
-        return (int)$this->paginatedFinder->createRawPaginatorAdapter($this->getQuery())->getTotalHits();
     }
 
     /**
      * @param Query $query
+     * @return $this
      */
-    protected function setOrderBy(Query $query)
+    protected function setOrderBy(Query $query): self
     {
         if (isset($this->requestParams['order']) && \count($this->requestParams['order'])) {
             $counter = \count($this->requestParams['order']);
@@ -209,26 +331,39 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
                 if ('true' === $requestColumn['orderable']) {
                     $columnName = $this->orderColumns[$columnIdx];
-                    $orderDirection = $this->requestParams['order'][$i]['dir'];
+                    $orderOptions = ['order' => $this->requestParams['order'][$i]['dir']];
 
-                    $query->setSort([$columnName => $orderDirection]);
+                    /** @var string|null $nestedPath */
+                    $nestedPath = $this->getNestedPath($columnName);
+                    if ($nestedPath !== null) {
+                        $orderOptions['nested_path'] = $nestedPath;
+                    }
+
+                    $query->setSort([$columnName => $orderOptions]);
                 }
             }
         }
+        return $this;
     }
 
+
     /**
+     * @param bool $countQuery
      * @return Query
      */
-    protected function getQuery(): Query
+    protected function getQuery($countQuery=false): Query
     {
         $query = new Query();
 
         $boolQuery = new BoolQuery();
         $this->setTermsFilters($boolQuery);
-        $this->addGlobalSearchTerms($boolQuery);
+        if (!$countQuery) {
+            $this->addSearchTerms($boolQuery);
+        }
         $query->setQuery($boolQuery);
-        $this->setOrderBy($query);
+        if (!$countQuery) {
+            $this->setOrderBy($query);
+        }
 
         return $query;
     }
@@ -257,6 +392,14 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
+     * @return int
+     */
+    public function getCountAllResults(): int
+    {
+        return (int)$this->paginatedFinder->createRawPaginatorAdapter($this->getQuery(true))->getTotalHits();
+    }
+
+    /**
      * @param ClassMetadata $metadata
      *
      * @return string
@@ -264,5 +407,32 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     protected function getEntityShortName(ClassMetadata $metadata): string
     {
         return strtolower($metadata->getReflectionClass()->getShortName());
+    }
+
+    /**
+     * @param ColumnInterface $column
+     * @return bool
+     */
+    private function isCustomDql(ColumnInterface $column): bool
+    {
+        return true === $this->accessor->getValue($column, 'customDql');
+    }
+
+    /**
+     * @param ColumnInterface $column
+     * @return bool
+     */
+    private function isSelectColumn(ColumnInterface $column): bool
+    {
+        return true === $this->accessor->getValue($column, 'selectColumn');
+    }
+
+    /**
+     * @param ColumnInterface $column
+     * @return bool
+     */
+    private function isOrderableColumn(ColumnInterface $column): bool
+    {
+        return true === $this->accessor->getValue($column, 'orderable');
     }
 }
