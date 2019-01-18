@@ -85,6 +85,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         if ($columnAlias !== '' && isset($this->nestedPaths[$columnAlias])) {
             return $this->nestedPaths[$columnAlias];
         }
+
         return null;
     }
 
@@ -101,7 +102,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $dql = $this->accessor->getValue($column, 'dql');
             $data = $this->accessor->getValue($column, 'data');
 
-            if ($this->isCustomDql($column)) {
+            if ($this->hasCustomDql($column)) {
                 $this->addOrderColumn($column, $dql);
                 $this->addSearchColumn($column, $dql);
             } elseif ($this->isSelectColumn($column)) {
@@ -147,8 +148,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     {
         // global filtering
         if (isset($this->requestParams['search']) && '' != $this->requestParams['search']['value']) {
-            $searchParams = $this->requestParams['search'];
+            /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
+
+            /**
+             * @var int|string $key
+             * @var ColumnInterface $column
+             */
             foreach ($this->searchColumns as $key => $column) {
                 if ($column === null) {
                     continue;
@@ -157,7 +163,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 /** @var ColumnInterface $currentCol */
                 $currentCol = $this->columns[$key];
 
-                $this->addColumnSearchTerm($filterQueries, $currentCol, $column, $searchParams['value']);
+                $this->addColumnSearchTerm(
+                    $filterQueries,
+                    $currentCol,
+                    $column,
+                    $this->requestParams['search']['value'],
+                    self::CONDITION_TYPE_SHOULD
+                );
             }
             if (!empty($filterQueries->getParams())) {
                 $query->addFilter($filterQueries);
@@ -166,7 +178,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
         // individual filtering
         if (true === $this->accessor->getValue($this->options, 'individualFiltering')) {
+            /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
+
+            /**
+             * @var int|string $key
+             * @var ColumnInterface $column
+             */
             foreach ($this->searchColumns as $key => $column) {
                 if ($column === null) {
                     continue;
@@ -175,13 +193,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 /** @var ColumnInterface $currentCol */
                 $currentCol = $this->columns[$key];
 
-                $searchParams = $this->requestParams['columns'][$key]['search'];
-
                 $this->addColumnSearchTerm(
                     $filterQueries,
                     $currentCol,
                     $column,
-                    $searchParams['value'],
+                    $this->requestParams['columns'][$key]['search']['value'],
                     self::CONDITION_TYPE_MUST
                 );
             }
@@ -210,10 +226,19 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     ): self {
         switch ($column->getTypeOfField()) {
             case 'integer':
-                $this->createIntegerShouldTerm($value, $columnAlias, $filterQueries);
+                $this->createIntegerShouldTerm(
+                    $filterQueries,
+                    $columnAlias,
+                    $value
+                );
                 break;
             case 'string':
-                $this->createStringFilterTerm($value, $columnAlias, $filterQueries, $conditionType);
+                $this->createStringFilterTerm(
+                    $filterQueries,
+                    $columnAlias,
+                    $value,
+                    $conditionType
+                );
                 break;
             default:
                 break;
@@ -223,54 +248,72 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * @param int $value
-     * @param string $columnAlias
      * @param BoolQuery $filterQueries
+     * @param string $columnAlias
+     * @param int $value
      */
-    protected function createIntegerShouldTerm($value, string $columnAlias, BoolQuery $filterQueries)
-    {
-        if (trim("{$columnAlias}") !== '' && (int)$value !== 0) {
+    protected function createIntegerShouldTerm(
+        BoolQuery $filterQueries,
+        string $columnAlias,
+        $value
+    ) {
+        if ($columnAlias !== '' && (int)$value !== 0) {
+            /** @var Terms $integerTerm */
+            $integerTerm = new Terms();
+            $integerTerm->setTerms($columnAlias, [(int)$value]);
+
             /** @var string|null $nestedPath */
             $nestedPath = $this->getNestedPath($columnAlias);
             if ($nestedPath !== null) {
-                $currentNested = new Nested();
-                $currentNested->setPath($nestedPath);
-                $currentNestedQuery = new BoolQuery();
-                $integerTerm = new Terms();
-                $integerTerm->setTerms($columnAlias, [(int)$value]);
-                $currentNestedQuery->addShould($integerTerm);
-                $currentNested->setQuery($currentNestedQuery);
-                $filterQueries->addShould($currentNested);
+                /** @var Nested $nested */
+                $nested = new Nested();
+                $nested->setPath($nestedPath);
+                /** @var BoolQuery $boolQuery */
+                $boolQuery = new BoolQuery();
+                $boolQuery->addShould($integerTerm);
+                $nested->setQuery($boolQuery);
+                $filterQueries->addShould($nested);
             } else {
-                $integerTerm = new Terms();
-                $integerTerm->setTerms($columnAlias, [(int)$value]);
                 $filterQueries->addShould($integerTerm);
             }
         }
     }
 
     /**
-     * @param int|string $value
-     * @param string $columnAlias
      * @param BoolQuery $filterQueries
+     * @param string $columnAlias
+     * @param string $value
      * @param string $conditionType
      */
-    protected function createStringFilterTerm($value, string $columnAlias, BoolQuery $filterQueries, string $conditionType)
-    {
+    protected function createStringFilterTerm(
+        BoolQuery $filterQueries,
+        string $columnAlias,
+        $value,
+        string $conditionType
+    ) {
         if (trim("{$columnAlias}") !== '' && trim("{$value}") !== '') {
-            $conditionFunc = $conditionType === self::CONDITION_TYPE_MUST ? 'addMust' : 'addShould';
+            /** @var Query\Regexp $regexQuery */
             $regexQuery = new Query\Regexp($columnAlias, '.*' . strtolower($value) . '.*');
+
             /** @var string|null $nestedPath */
             $nestedPath = $this->getNestedPath($columnAlias);
             if ($nestedPath !== null) {
-                $currentNested = new Nested();
-                $currentNested->setPath($nestedPath);
-                $currentNestedQuery = new BoolQuery();
-                $currentNestedQuery->addShould($regexQuery);
-                $currentNested->setQuery($currentNestedQuery);
-                $filterQueries->$conditionFunc($currentNested);
+                /** @var Nested $nested */
+                $nested = new Nested();
+                $nested->setPath($nestedPath);
+                /** @var BoolQuery $boolQuery */
+                $boolQuery = new BoolQuery();
+                $boolQuery->addShould($regexQuery);
+                $nested->setQuery($boolQuery);
+                $stringFilterQuery = $nested;
             } else {
-                $filterQueries->$conditionFunc($regexQuery);
+                $stringFilterQuery = $regexQuery;
+            }
+
+            if ($conditionType === self::CONDITION_TYPE_MUST) {
+                $filterQueries->addMust($stringFilterQuery);
+            } elseif ($conditionType === self::CONDITION_TYPE_SHOULD) {
+                $filterQueries->addShould($stringFilterQuery);
             }
         }
     }
@@ -322,7 +365,9 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function setOrderBy(Query $query): self
     {
-        if (isset($this->requestParams['order']) && \count($this->requestParams['order'])) {
+        if (isset($this->requestParams['order']) &&
+            \count($this->requestParams['order'])
+        ) {
             $counter = \count($this->requestParams['order']);
 
             for ($i = 0; $i < $counter; $i++) {
@@ -331,7 +376,9 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
                 if ('true' === $requestColumn['orderable']) {
                     $columnName = $this->orderColumns[$columnIdx];
-                    $orderOptions = ['order' => $this->requestParams['order'][$i]['dir']];
+                    $orderOptions = [
+                        'order' => $this->requestParams['order'][$i]['dir']
+                    ];
 
                     /** @var string|null $nestedPath */
                     $nestedPath = $this->getNestedPath($columnName);
@@ -343,6 +390,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
             }
         }
+
         return $this;
     }
 
@@ -353,14 +401,20 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function getQuery($countQuery=false): Query
     {
+        /** @var Query $query */
         $query = new Query();
 
+        /** @var BoolQuery $boolQuery */
         $boolQuery = new BoolQuery();
+
         $this->setTermsFilters($boolQuery);
+
         if (!$countQuery) {
             $this->addSearchTerms($boolQuery);
         }
+
         $query->setQuery($boolQuery);
+
         if (!$countQuery) {
             $this->setOrderBy($query);
         }
@@ -384,6 +438,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $resultEntries[] = $result->getResult()->getSource();
         }
 
+        /** @var ElasticaEntries $entries */
         $entries = new ElasticaEntries();
         $entries->setCount($results->getTotalHits());
         $entries->setEntries($resultEntries);
@@ -413,7 +468,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param ColumnInterface $column
      * @return bool
      */
-    private function isCustomDql(ColumnInterface $column): bool
+    private function hasCustomDql(ColumnInterface $column): bool
     {
         return true === $this->accessor->getValue($column, 'customDql');
     }
