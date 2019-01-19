@@ -69,7 +69,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         if ($columnAlias !== null && $columnAlias !== '' && $path !== null && strpos($path, '.') !== false) {
             $pathParts = explode('.', $path);
             if (count($pathParts) > 1) {
-                $this->nestedPaths[$columnAlias] = implode('.', array_slice($pathParts, 0, -1));
+                $this->nestedPaths[$columnAlias] =
+                    implode('.', array_slice($pathParts, 0, -1));
             }
         }
 
@@ -103,11 +104,9 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $data = $this->accessor->getValue($column, 'data');
 
             if ($this->hasCustomDql($column)) {
-                $this->addOrderColumn($column, $dql);
-                $this->addSearchColumn($column, $dql);
+                $this->addSearchOrderColumn($column, $dql);
             } elseif ($this->isSelectColumn($column)) {
-                $this->addOrderColumn($column, $data);
-                $this->addSearchColumn($column, $data);
+                $this->addSearchOrderColumn($column, $data);
             } else {
                 if ($this->accessor->isReadable($column, 'orderColumn') &&
                     $this->isOrderableColumn($column)
@@ -141,7 +140,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param BoolQuery $query
-     *
      * @return $this
      */
     protected function addSearchTerms(BoolQuery $query): self
@@ -319,7 +317,22 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
-     * @param ColumnInterface
+     *
+     * @param ColumnInterface $column
+     * @param string $data
+     * @return $this
+     */
+    protected function addSearchOrderColumn(ColumnInterface $column, $data): self
+    {
+        $this->addSearchColumn($column, $data);
+        $this->addOrderColumn($column, $data);
+
+        return $this;
+    }
+
+    /**
+     * @param ColumnInterface $column
+     * @param string $data
      * @return $this
      */
     protected function addOrderColumn(ColumnInterface $column, $data): self
@@ -344,7 +357,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param ColumnInterface $column
-     *
+     * @param string $data
      * @return $this
      */
     protected function addSearchColumn(ColumnInterface $column, $data): self
