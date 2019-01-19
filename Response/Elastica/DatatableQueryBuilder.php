@@ -155,20 +155,20 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
              * @var int|string $key
              * @var ColumnInterface $column
              */
-            foreach ($this->searchColumns as $key => $column) {
-                if ($column === null) {
+            foreach ($this->searchColumns as $key => $columnAlias) {
+                if ($columnAlias === null || $columnAlias === '') {
                     continue;
                 }
 
-                /** @var ColumnInterface $currentCol */
-                $currentCol = $this->columns[$key];
+                /** @var ColumnInterface $column */
+                $column = $this->columns[$key];
 
                 $this->addColumnSearchTerm(
                     $filterQueries,
-                    $currentCol,
+                    self::CONDITION_TYPE_SHOULD,
                     $column,
-                    $this->requestParams['search']['value'],
-                    self::CONDITION_TYPE_SHOULD
+                    $columnAlias,
+                    $this->requestParams['search']['value']
                 );
             }
             if (!empty($filterQueries->getParams())) {
@@ -185,20 +185,20 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
              * @var int|string $key
              * @var ColumnInterface $column
              */
-            foreach ($this->searchColumns as $key => $column) {
-                if ($column === null) {
+            foreach ($this->searchColumns as $key => $columnAlias) {
+                if ($columnAlias === null || $columnAlias === '') {
                     continue;
                 }
 
-                /** @var ColumnInterface $currentCol */
-                $currentCol = $this->columns[$key];
+                /** @var ColumnInterface $column */
+                $column = $this->columns[$key];
 
                 $this->addColumnSearchTerm(
                     $filterQueries,
-                    $currentCol,
+                    self::CONDITION_TYPE_MUST,
                     $column,
-                    $this->requestParams['columns'][$key]['search']['value'],
-                    self::CONDITION_TYPE_MUST
+                    $columnAlias,
+                    $this->requestParams['columns'][$key]['search']['value']
                 );
             }
             if (!empty($filterQueries->getParams())) {
@@ -211,18 +211,18 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param BoolQuery $filterQueries
+     * @param string $conditionType
      * @param ColumnInterface $column
      * @param string $columnAlias
      * @param int|string $value
-     * @param string $conditionType
      * @return $this
      */
     protected function addColumnSearchTerm(
         BoolQuery $filterQueries,
+        string $conditionType,
         ColumnInterface $column,
         string $columnAlias,
-        $value,
-        string $conditionType = self::CONDITION_TYPE_SHOULD
+        $value
     ): self {
         switch ($column->getTypeOfField()) {
             case 'integer':
@@ -235,9 +235,9 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             case 'string':
                 $this->createStringFilterTerm(
                     $filterQueries,
+                    $conditionType,
                     $columnAlias,
-                    $value,
-                    $conditionType
+                    $value
                 );
                 break;
             default:
@@ -281,17 +281,17 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param BoolQuery $filterQueries
+     * @param string $conditionType
      * @param string $columnAlias
      * @param string $value
-     * @param string $conditionType
      */
     protected function createStringFilterTerm(
         BoolQuery $filterQueries,
+        string $conditionType,
         string $columnAlias,
-        $value,
-        string $conditionType
+        $value
     ) {
-        if (trim("{$columnAlias}") !== '' && trim("{$value}") !== '') {
+        if ($columnAlias !== '' && $value !== '') {
             /** @var Query\Regexp $regexQuery */
             $regexQuery = new Query\Regexp($columnAlias, '.*' . strtolower($value) . '.*');
 
