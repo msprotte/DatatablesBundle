@@ -227,7 +227,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 $this->createIntegerShouldTerm(
                     $filterQueries,
                     $columnAlias,
-                    $value
+                    (int)$value
                 );
                 break;
             case 'string':
@@ -235,7 +235,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $filterQueries,
                     $conditionType,
                     $columnAlias,
-                    $value
+                    (string)$value
                 );
                 break;
             default:
@@ -253,12 +253,12 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     protected function createIntegerShouldTerm(
         BoolQuery $filterQueries,
         string $columnAlias,
-        $value
+        int $value
     ) {
-        if ($columnAlias !== '' && (int)$value !== 0) {
+        if ($columnAlias !== '' && $value !== 0) {
             /** @var Terms $integerTerm */
             $integerTerm = new Terms();
-            $integerTerm->setTerms($columnAlias, [(int)$value]);
+            $integerTerm->setTerms($columnAlias, [$value]);
 
             /** @var string|null $nestedPath */
             $nestedPath = $this->getNestedPath($columnAlias);
@@ -287,7 +287,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         BoolQuery $filterQueries,
         string $conditionType,
         string $columnAlias,
-        $value
+        string $value
     ) {
         if ($columnAlias !== '' && $value !== '') {
             /** @var Query\Regexp $regexQuery */
