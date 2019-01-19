@@ -123,9 +123,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $this->isSearchableColumn($column)
                 ) {
                     $searchColumn = $this->accessor->getValue($column, 'searchColumn');
-                    if ((substr_count($searchColumn, '.') + 1) < 2) {
-                        $searchColumn = $this->entityShortName . '.' . $searchColumn;
-                    }
                     $this->addSearchColumn($column, $searchColumn);
                 } elseif ($this->isSearchableColumn($column)) {
                     $this->addSearchColumn($column, $data);
