@@ -132,10 +132,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
             }
 
-            $searchColumnGroup = $this->accessor->getValue($column, 'searchColumnGroup');
-            if ('' !== $searchColumnGroup && null !== $searchColumnGroup) {
-                $this->addSearchColumnGroupEntry($searchColumnGroup, $key);
-            }
+            $this->addSearchColumnGroupEntry($column, $key);
         }
 
         return $this;
@@ -180,7 +177,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         }
 
         // individual filtering
-        if ($this->hasIndividualFiltering()) {
+        if ($this->isIndividualFiltering()) {
             /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
 
@@ -245,6 +242,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         /** @var BoolQuery $filterQueries */
         $groupFilterQueries = new BoolQuery();
 
+        /** @var int|string $key */
         foreach ($this->searchColumnGroups[$searchColumnGroup] as $key) {
             $column = $this->columns[$key];
             $columnAlias = $this->searchColumns[$key];
@@ -497,8 +495,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     public function execute(): ElasticaEntries
     {
-        $query = $this->getQuery();
-        $results = $this->paginatedFinder->createHybridPaginatorAdapter($query)->getResults(
+        $results = $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults(
             $this->requestParams['start'],
             $this->requestParams['length']
         );
