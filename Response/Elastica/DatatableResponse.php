@@ -7,7 +7,6 @@ use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 use Sg\DatatablesBundle\Response\AbstractDatatableResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 class DatatableResponse extends AbstractDatatableResponse
 {
@@ -72,11 +71,6 @@ class DatatableResponse extends AbstractDatatableResponse
         return $this;
     }
 
-    public function __construct(RequestStack $requestStack)
-    {
-        parent::__construct($requestStack);
-    }
-
     public function resetResponseOptions()
     {
         $this->countAllResults = true;
@@ -84,13 +78,11 @@ class DatatableResponse extends AbstractDatatableResponse
 
     /**
      * @param bool $countAllResults
-     * @param bool $outputWalkers
-     * @param bool $fetchJoinCollection
      *
      * @return JsonResponse
      * @throws \Exception
      */
-    public function getResponse($countAllResults = true)
+    public function getResponse($countAllResults = true): JsonResponse
     {
         $this->countAllResults = $countAllResults;
 
@@ -103,10 +95,12 @@ class DatatableResponse extends AbstractDatatableResponse
     public function getJsonResponse(): JsonResponse
     {
         $this->checkResponseDependencies();
-        $this->getDatatableQueryBuilder()->setPaginatedFinder($this->paginatedFinder);
-        $this->getDatatableQueryBuilder()->setModelDefinition($this->modelDefinition);
+        /** @var DatatableQueryBuilder $datatableQueryBuilder */
+        $datatableQueryBuilder = $this->getDatatableQueryBuilder();
+        $datatableQueryBuilder->setPaginatedFinder($this->paginatedFinder);
+        $datatableQueryBuilder->setModelDefinition($this->modelDefinition);
 
-        $entries = $this->getDatatableQueryBuilder()->execute();
+        $entries = $datatableQueryBuilder->execute();
 
         $formatter = new DatatableFormatter();
         $formatter->runFormatter($entries, $this->datatable);
@@ -130,11 +124,11 @@ class DatatableResponse extends AbstractDatatableResponse
     protected function createDatatableQueryBuilder(): AbstractDatatableQueryBuilder
     {
         if (null === $this->datatable) {
-            throw new \Exception('Elastica\DatatableResponse::getDatatableQueryBuilder(): Set a Datatable class with setDatatable().');
+            throw new \UnexpectedValueException('Elastica\DatatableResponse::getDatatableQueryBuilder(): Set a Datatable class with setDatatable().');
         }
 
         if (null === $this->datatableQueryBuilderClass) {
-            throw new \Exception('Elastica\DatatableResponse::getDatatableQueryBuilder(): Set a datatableQueryBuilderClass first.');
+            throw new \UnexpectedValueException('Elastica\DatatableResponse::getDatatableQueryBuilder(): Set a datatableQueryBuilderClass first.');
         }
 
         $this->requestParams = $this->getRequestParams();
