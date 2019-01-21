@@ -290,6 +290,13 @@ abstract class AbstractColumn implements ColumnInterface
      */
     protected $originalTypeOfField;
 
+    /**
+     * The group name of search columns to look at in a column search
+     *
+     * @var null|string
+     */
+    protected $searchColumnGroup;
+
     //-------------------------------------------------
     // Options
     //-------------------------------------------------
@@ -323,6 +330,7 @@ abstract class AbstractColumn implements ColumnInterface
             'join_type' => 'leftJoin',
             'type_of_field' => null,
             'responsive_priority' => null,
+            'search_column_group' => null,
         ));
 
         $resolver->setAllowedTypes('cell_type', array('null', 'string'));
@@ -343,6 +351,7 @@ abstract class AbstractColumn implements ColumnInterface
         $resolver->setAllowedTypes('join_type', 'string');
         $resolver->setAllowedTypes('type_of_field', array('null', 'string'));
         $resolver->setAllowedTypes('responsive_priority', array('null', 'int'));
+        $resolver->setAllowedTypes('search_column_group', array('null', 'string'));
 
         $resolver->setAllowedValues('cell_type', array(null, 'th', 'td'));
         $resolver->setAllowedValues('join_type', array(null, 'join', 'leftJoin', 'innerJoin'));
@@ -1072,6 +1081,30 @@ abstract class AbstractColumn implements ColumnInterface
     public function setOriginalTypeOfField($originalTypeOfField)
     {
         $this->originalTypeOfField = $originalTypeOfField;
+
+        return $this;
+    }
+
+    /**
+     * Get the group name of columns to look at in a column search
+     *
+     * @return null|string
+     */
+    public function getSearchColumnGroup()
+    {
+        return $this->searchColumnGroup;
+    }
+
+
+    /**
+     * Set the group name of columns to look at in a column search
+     *
+     * @param null|string $searchColumnGroup
+     * @return $this
+     */
+    public function setSearchColumnGroup($searchColumnGroup)
+    {
+        $this->searchColumnGroup = $searchColumnGroup;
 
         return $this;
     }

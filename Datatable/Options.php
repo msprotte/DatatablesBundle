@@ -235,6 +235,14 @@ class Options
     protected $searchInNonVisibleColumns;
 
     /**
+     * Enable or disable individual filtering with search column groups
+     * Default: false
+     *
+     * @var bool
+     */
+    protected $searchColumnGroupFiltering;
+
+    /**
      * The global search type.
      * Default: 'like'
      *
@@ -291,6 +299,7 @@ class Options
             'individual_filtering_position' => 'head',
             'search_in_non_visible_columns' => false,
             'global_search_type' => 'like',
+            'search_column_group_filtering' => false,
         ));
 
         $resolver->setAllowedTypes('defer_loading', array('null', 'int', 'array'));
@@ -316,6 +325,7 @@ class Options
         $resolver->setAllowedTypes('individual_filtering_position', 'string');
         $resolver->setAllowedTypes('search_in_non_visible_columns', 'bool');
         $resolver->setAllowedTypes('global_search_type', 'string');
+        $resolver->setAllowedTypes('search_column_group_filtering', 'bool');
 
         $resolver->setAllowedValues('individual_filtering_position', array('head', 'foot', 'both'));
         $resolver->setAllowedValues('global_search_type', array('like', 'notLike', 'eq', 'neq', 'lt', 'lte', 'gt', 'gte', 'in', 'notIn', 'isNull', 'isNotNull'));
@@ -895,6 +905,30 @@ class Options
     public function setGlobalSearchType($globalSearchType)
     {
         $this->globalSearchType = $globalSearchType;
+
+        return $this;
+    }
+
+    /**
+     * Get searchColumnGroupFiltering.
+     *
+     * @return boolean
+     */
+    public function isSearchColumnGroupFiltering()
+    {
+        return $this->searchColumnGroupFiltering;
+    }
+
+    /**
+     * Set searchColumnGroupFiltering.
+     *
+     * @param boolean $searchColumnGroupFiltering
+     *
+     * @return $this
+     */
+    public function setSearchColumnGroupFiltering($searchColumnGroupFiltering)
+    {
+        $this->searchColumnGroupFiltering = $searchColumnGroupFiltering;
 
         return $this;
     }
