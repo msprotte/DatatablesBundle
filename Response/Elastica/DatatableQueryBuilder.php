@@ -495,8 +495,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     public function execute(): ElasticaEntries
     {
-        $query = $this->getQuery();
-        $results = $this->paginatedFinder->createHybridPaginatorAdapter($query)->getResults(
+        $results = $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults(
             $this->requestParams['start'],
             $this->requestParams['length']
         );
