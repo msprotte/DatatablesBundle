@@ -192,6 +192,7 @@ abstract class AbstractDatatableQueryBuilder
                 $this->searchColumnGroups[$searchColumnGroup][] = $key;
             }
         }
+
         return $this;
     }
 
