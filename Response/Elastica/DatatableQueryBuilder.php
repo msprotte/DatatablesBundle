@@ -57,6 +57,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         $this->selectColumns = [];
         $this->searchColumns = [];
         $this->orderColumns = [];
+        $this->searchColumnGroups = [];
     }
 
     /**
@@ -130,6 +131,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $this->addSearchColumn($column, null);
                 }
             }
+
+            $searchColumnGroup = $this->accessor->getValue($column, 'searchColumnGroup');
+            if ('' !== $searchColumnGroup && null !== $searchColumnGroup) {
+                $this->addSearchColumnGroupEntry($searchColumnGroup, $key);
+            }
         }
 
         return $this;
@@ -150,29 +156,31 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
              * @var int|string $key
              * @var ColumnInterface $column
              */
-            foreach ($this->searchColumns as $key => $columnAlias) {
-                if ($columnAlias === null || $columnAlias === '') {
-                    continue;
+            foreach ($this->columns as $key => $column) {
+                if (true === $this->isSearchableColumn($column)) {
+                    /** @var string $columnAlias */
+                    $columnAlias = $this->searchColumns[$key];
+                    if ('' === $columnAlias || null === $columnAlias) {
+                        continue;
+                    }
+
+                    $this->addColumnSearchTerm(
+                        $filterQueries,
+                        self::CONDITION_TYPE_SHOULD,
+                        $column,
+                        $columnAlias,
+                        $this->requestParams['search']['value']
+                    );
                 }
-
-                /** @var ColumnInterface $column */
-                $column = $this->columns[$key];
-
-                $this->addColumnSearchTerm(
-                    $filterQueries,
-                    self::CONDITION_TYPE_SHOULD,
-                    $column,
-                    $columnAlias,
-                    $this->requestParams['search']['value']
-                );
             }
+
             if (!empty($filterQueries->getParams())) {
                 $query->addFilter($filterQueries);
             }
         }
 
         // individual filtering
-        if (true === $this->accessor->getValue($this->options, 'individualFiltering')) {
+        if ($this->hasIndividualFiltering()) {
             /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
 
@@ -180,27 +188,79 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
              * @var int|string $key
              * @var ColumnInterface $column
              */
-            foreach ($this->searchColumns as $key => $columnAlias) {
-                if ($columnAlias === null || $columnAlias === '') {
-                    continue;
+            foreach ($this->columns as $key => $column) {
+                if (true === $this->isSearchableColumn($column)) {
+                    if (false === array_key_exists('columns', $this->requestParams)) {
+                        continue;
+                    }
+                    if (false === array_key_exists($key, $this->requestParams['columns'])) {
+                        continue;
+                    }
+
+                    /** @var string $columnAlias */
+                    $columnAlias = $this->searchColumns[$key];
+                    if ('' === $columnAlias || null === $columnAlias) {
+                        continue;
+                    }
+
+                    /** @var null|string $hasSearchColumnGroup */
+                    $searchColumnGroup = $this->getColumnSearchColumnGroup($column);
+                    if ('' !== $searchColumnGroup) {
+                        $this->addColumnGroupSearchTerm(
+                            $filterQueries,
+                            $searchColumnGroup,
+                            $this->requestParams['columns'][$key]['search']['value']
+                        );
+                    } else {
+                        $this->addColumnSearchTerm(
+                            $filterQueries,
+                            self::CONDITION_TYPE_MUST,
+                            $column,
+                            $columnAlias,
+                            $this->requestParams['columns'][$key]['search']['value']
+                        );
+                    }
                 }
-
-                /** @var ColumnInterface $column */
-                $column = $this->columns[$key];
-
-                $this->addColumnSearchTerm(
-                    $filterQueries,
-                    self::CONDITION_TYPE_MUST,
-                    $column,
-                    $columnAlias,
-                    $this->requestParams['columns'][$key]['search']['value']
-                );
             }
+
             if (!empty($filterQueries->getParams())) {
                 $query->addFilter($filterQueries);
             }
         }
 
+        return $this;
+    }
+
+    /**
+     * @param BoolQuery $filterQueries
+     * @param string $searchColumnGroup
+     * @param int|string $value
+     * @return $this
+     */
+    protected function addColumnGroupSearchTerm(
+        BoolQuery $filterQueries,
+        string $searchColumnGroup,
+        $value
+    ): self {
+        /** @var BoolQuery $filterQueries */
+        $groupFilterQueries = new BoolQuery();
+
+        foreach ($this->searchColumnGroups[$searchColumnGroup] as $key) {
+            $column = $this->columns[$key];
+            $columnAlias = $this->searchColumns[$key];
+
+            $this->addColumnSearchTerm(
+                $groupFilterQueries,
+                self::CONDITION_TYPE_SHOULD,
+                $column,
+                $columnAlias,
+                $value
+            );
+        }
+
+        if (!empty($groupFilterQueries->getParams())) {
+            $filterQueries->addMust($groupFilterQueries);
+        }
         return $this;
     }
 
@@ -437,7 +497,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     public function execute(): ElasticaEntries
     {
-        $results = $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults(
+        $query = $this->getQuery();
+        $results = $this->paginatedFinder->createHybridPaginatorAdapter($query)->getResults(
             $this->requestParams['start'],
             $this->requestParams['length']
         );

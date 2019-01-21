@@ -53,6 +53,9 @@ abstract class AbstractDatatableQueryBuilder
     protected $searchColumns;
 
     /** @var array */
+    protected $searchColumnGroups;
+
+    /** @var array */
     protected $orderColumns;
 
     /** @var Options */
@@ -154,5 +157,57 @@ abstract class AbstractDatatableQueryBuilder
         }
 
         return $searchColumn;
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasIndividualFiltering(): bool
+    {
+        return true === $this->accessor->getValue($this->options, 'individualFiltering');
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasSearchColumnGroupFiltering(): bool
+    {
+        return true === $this->accessor->getValue($this->options, 'searchColumnGroupFiltering');
+    }
+
+    /**
+     * @param null|string $searchColumnGroup
+     * @param int $columnIdx
+     * @return AbstractDatatableQueryBuilder
+     */
+    protected function addSearchColumnGroupEntry($searchColumnGroup, int $columnIdx): self
+    {
+        if (null !== $searchColumnGroup && '' !== $searchColumnGroup) {
+            if (empty($this->searchColumnGroups[$searchColumnGroup])) {
+                $this->searchColumnGroups[$searchColumnGroup] = [];
+            }
+            if (!\in_array($columnIdx, $this->searchColumnGroups[$searchColumnGroup], true)) {
+                $this->searchColumnGroups[$searchColumnGroup][] = $columnIdx;
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @param ColumnInterface $column
+     * @return string
+     */
+    protected function getColumnSearchColumnGroup(ColumnInterface $column): string
+    {
+        if ($this->hasSearchColumnGroupFiltering()) {
+            $searchColumnGroup = $column->getSearchColumnGroup();
+            if ('' !== $searchColumnGroup && null !== $searchColumnGroup &&
+                isset($this->searchColumnGroups[$searchColumnGroup])
+            ) {
+                return $searchColumnGroup;
+            }
+        }
+
+        return '';
     }
 }
