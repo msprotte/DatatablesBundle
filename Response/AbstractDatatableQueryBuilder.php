@@ -162,7 +162,7 @@ abstract class AbstractDatatableQueryBuilder
     /**
      * @return bool
      */
-    protected function hasIndividualFiltering(): bool
+    protected function isIndividualFiltering(): bool
     {
         return true === $this->accessor->getValue($this->options, 'individualFiltering');
     }
@@ -170,24 +170,26 @@ abstract class AbstractDatatableQueryBuilder
     /**
      * @return bool
      */
-    protected function hasSearchColumnGroupFiltering(): bool
+    protected function isSearchColumnGroupFiltering(): bool
     {
         return true === $this->accessor->getValue($this->options, 'searchColumnGroupFiltering');
     }
 
     /**
-     * @param null|string $searchColumnGroup
-     * @param int $columnIdx
-     * @return AbstractDatatableQueryBuilder
+     * @param ColumnInterface $column
+     * @param int|string $key
+     * @return $this
      */
-    protected function addSearchColumnGroupEntry($searchColumnGroup, int $columnIdx): self
+    protected function addSearchColumnGroupEntry(ColumnInterface $column, $key): self
     {
+        /** @var null|string $searchColumnGroup */
+        $searchColumnGroup = $this->accessor->getValue($column, 'searchColumnGroup');
         if (null !== $searchColumnGroup && '' !== $searchColumnGroup) {
             if (empty($this->searchColumnGroups[$searchColumnGroup])) {
                 $this->searchColumnGroups[$searchColumnGroup] = [];
             }
-            if (!\in_array($columnIdx, $this->searchColumnGroups[$searchColumnGroup], true)) {
-                $this->searchColumnGroups[$searchColumnGroup][] = $columnIdx;
+            if (!\in_array($key, $this->searchColumnGroups[$searchColumnGroup], true)) {
+                $this->searchColumnGroups[$searchColumnGroup][] = $key;
             }
         }
         return $this;
@@ -199,12 +201,12 @@ abstract class AbstractDatatableQueryBuilder
      */
     protected function getColumnSearchColumnGroup(ColumnInterface $column): string
     {
-        if ($this->hasSearchColumnGroupFiltering()) {
+        if ($this->isSearchColumnGroupFiltering()) {
             $searchColumnGroup = $column->getSearchColumnGroup();
             if ('' !== $searchColumnGroup && null !== $searchColumnGroup &&
                 isset($this->searchColumnGroups[$searchColumnGroup])
             ) {
-                return $searchColumnGroup;
+                return (string)$searchColumnGroup;
             }
         }
 
