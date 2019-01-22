@@ -12,6 +12,8 @@ use FOS\ElasticaBundle\HybridResult;
 use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
+use Sg\DatatablesBundle\Datatable\Filter\FilterInterface;
+use Sg\DatatablesBundle\Datatable\Filter\SelectFilter;
 
 abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 {
@@ -161,12 +163,14 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                         continue;
                     }
 
+                    $searchValue = $this->requestParams['search']['value'];
+
                     $this->addColumnSearchTerm(
                         $filterQueries,
                         self::CONDITION_TYPE_SHOULD,
                         $column,
                         $columnAlias,
-                        $this->requestParams['search']['value']
+                        $searchValue
                     );
                 }
             }
@@ -200,13 +204,15 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                         continue;
                     }
 
+                    $searchValue = $this->requestParams['columns'][$key]['search']['value'];
+
                     /** @var null|string $hasSearchColumnGroup */
                     $searchColumnGroup = $this->getColumnSearchColumnGroup($column);
                     if ('' !== $searchColumnGroup) {
                         $this->addColumnGroupSearchTerm(
                             $filterQueries,
                             $searchColumnGroup,
-                            $this->requestParams['columns'][$key]['search']['value']
+                            $searchValue
                         );
                     } else {
                         $this->addColumnSearchTerm(
@@ -214,7 +220,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                             self::CONDITION_TYPE_MUST,
                             $column,
                             $columnAlias,
-                            $this->requestParams['columns'][$key]['search']['value']
+                            $searchValue
                         );
                     }
                 }
@@ -231,13 +237,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param BoolQuery $filterQueries
      * @param string $searchColumnGroup
-     * @param int|string $value
+     * @param int|string $searchValue
      * @return $this
      */
     protected function addColumnGroupSearchTerm(
         BoolQuery $filterQueries,
         string $searchColumnGroup,
-        $value
+        $searchValue
     ): self {
         /** @var BoolQuery $filterQueries */
         $groupFilterQueries = new BoolQuery();
@@ -252,7 +258,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 self::CONDITION_TYPE_SHOULD,
                 $column,
                 $columnAlias,
-                $value
+                $searchValue
             );
         }
 
@@ -267,7 +273,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $conditionType
      * @param ColumnInterface $column
      * @param string $columnAlias
-     * @param int|string $value
+     * @param int|string $searchValue
      * @return $this
      */
     protected function addColumnSearchTerm(
@@ -275,23 +281,42 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         string $conditionType,
         ColumnInterface $column,
         string $columnAlias,
-        $value
+        $searchValue
     ): self {
         switch ($column->getTypeOfField()) {
             case 'integer':
                 $this->createIntegerShouldTerm(
                     $filterQueries,
                     $columnAlias,
-                    (int)$value
+                    (int)$searchValue
                 );
                 break;
             case 'string':
-                $this->createStringFilterTerm(
-                    $filterQueries,
-                    $conditionType,
-                    $columnAlias,
-                    (string)$value
-                );
+                /** @var FilterInterface $filter */
+                $filter = $this->accessor->getValue($column, 'filter');
+
+                if ($filter instanceof SelectFilter && true === $filter->isMultiple()) {
+                    $searchValues = explode(',', $searchValue);
+                } else {
+                    $searchValues = null;
+                }
+
+                if (is_array($searchValues) && count($searchValues) > 1) {
+                    $this->createStringMultiFilterTerm(
+                        $filterQueries,
+                        $conditionType,
+                        $columnAlias,
+                        (array)$searchValues
+                    );
+                } else {
+                    $this->createStringFilterTerm(
+                        $filterQueries,
+                        $conditionType,
+                        $columnAlias,
+                        (string)$searchValue
+                    );
+                }
+
                 break;
             default:
                 break;
@@ -303,17 +328,17 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param BoolQuery $filterQueries
      * @param string $columnAlias
-     * @param int $value
+     * @param int $searchValue
      */
     protected function createIntegerShouldTerm(
         BoolQuery $filterQueries,
         string $columnAlias,
-        int $value
+        int $searchValue
     ) {
-        if ($columnAlias !== '' && $value !== 0) {
+        if ($columnAlias !== '' && $searchValue !== 0) {
             /** @var Terms $integerTerm */
             $integerTerm = new Terms();
-            $integerTerm->setTerms($columnAlias, [$value]);
+            $integerTerm->setTerms($columnAlias, [$searchValue]);
 
             /** @var string|null $nestedPath */
             $nestedPath = $this->getNestedPath($columnAlias);
@@ -336,17 +361,53 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param BoolQuery $filterQueries
      * @param string $conditionType
      * @param string $columnAlias
-     * @param string $value
+     * @param array $searchValues
+     */
+    protected function createStringMultiFilterTerm(
+        BoolQuery $filterQueries,
+        string $conditionType,
+        string $columnAlias,
+        array $searchValues
+    ) {
+        if ($columnAlias !== '' && is_array($searchValues) && !empty($searchValues)) {
+            /** @var BoolQuery $filterSubQueries */
+            $filterSubQueries = new BoolQuery();
+
+            /** @var string $searchValue */
+            foreach ($searchValues as $searchValue) {
+                $this->createStringFilterTerm(
+                    $filterSubQueries,
+                    self::CONDITION_TYPE_SHOULD,
+                    $columnAlias,
+                    (string)$searchValue
+                );
+            }
+
+            if (!empty($filterSubQueries->getParams())) {
+                if ($conditionType === self::CONDITION_TYPE_MUST) {
+                    $filterQueries->addMust($filterSubQueries);
+                } elseif ($conditionType === self::CONDITION_TYPE_SHOULD) {
+                    $filterQueries->addShould($filterSubQueries);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param BoolQuery $filterQueries
+     * @param string $conditionType
+     * @param string $columnAlias
+     * @param string $searchValue
      */
     protected function createStringFilterTerm(
         BoolQuery $filterQueries,
         string $conditionType,
         string $columnAlias,
-        string $value
+        string $searchValue
     ) {
-        if ($columnAlias !== '' && $value !== '') {
+        if ($columnAlias !== '' && $searchValue !== '') {
             /** @var Query\Regexp $regexQuery */
-            $regexQuery = new Query\Regexp($columnAlias, '.*' . strtolower($value) . '.*');
+            $regexQuery = new Query\Regexp($columnAlias, '.*' . strtolower($searchValue) . '.*');
 
             /** @var string|null $nestedPath */
             $nestedPath = $this->getNestedPath($columnAlias);
@@ -445,7 +506,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 if ('true' === $requestColumn['orderable']) {
                     $columnName = $this->orderColumns[$columnIdx];
                     $orderOptions = [
-                        'order' => $this->requestParams['order'][$i]['dir']
+                        'order' => $this->requestParams['order'][$i]['dir'],
                     ];
 
                     /** @var string|null $nestedPath */
