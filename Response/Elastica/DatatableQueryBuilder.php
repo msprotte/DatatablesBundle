@@ -74,7 +74,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function addNestedPath(string $columnAlias, $path): self
     {
-        if ($columnAlias !== null && $columnAlias !== '' && $path !== null && strpos($path, '.') !== false) {
+        if (null !== $columnAlias && '' !== $columnAlias && null !== $path && false !== strpos($path, '.')) {
             $pathParts = explode('.', $path);
             if (count($pathParts) > 1) {
                 $this->nestedPaths[$columnAlias] =
@@ -92,7 +92,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function getNestedPath(string $columnAlias)
     {
-        if ($columnAlias !== '' && isset($this->nestedPaths[$columnAlias])) {
+        if ('' !== $columnAlias && isset($this->nestedPaths[$columnAlias])) {
             return $this->nestedPaths[$columnAlias];
         }
 
@@ -211,22 +211,24 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
                     $searchValue = $this->requestParams['columns'][$key]['search']['value'];
 
-                    /** @var null|string $hasSearchColumnGroup */
-                    $searchColumnGroup = $this->getColumnSearchColumnGroup($column);
-                    if ('' !== $searchColumnGroup) {
-                        $this->addColumnGroupSearchTerm(
-                            $filterQueries,
-                            $searchColumnGroup,
-                            $searchValue
-                        );
-                    } else {
-                        $this->addColumnSearchTerm(
-                            $filterQueries,
-                            self::CONDITION_TYPE_MUST,
-                            $column,
-                            $columnAlias,
-                            $searchValue
-                        );
+                    if ('' !== $searchValue && 'null' !== $searchValue) {
+                        /** @var null|string $hasSearchColumnGroup */
+                        $searchColumnGroup = $this->getColumnSearchColumnGroup($column);
+                        if ('' !== $searchColumnGroup) {
+                            $this->addColumnGroupSearchTerm(
+                                $filterQueries,
+                                $searchColumnGroup,
+                                $searchValue
+                            );
+                        } else {
+                            $this->addColumnSearchTerm(
+                                $filterQueries,
+                                self::CONDITION_TYPE_MUST,
+                                $column,
+                                $columnAlias,
+                                $searchValue
+                            );
+                        }
                     }
                 }
             }
@@ -343,7 +345,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         string $columnAlias,
         int $searchValue
     ) {
-        if ($columnAlias !== '' && $searchValue !== 0) {
+        if ('' !== $columnAlias) {
             /** @var Terms $integerTerm */
             $integerTerm = new Terms();
             $integerTerm->setTerms($columnAlias, [$searchValue]);
@@ -377,7 +379,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         string $columnAlias,
         array $searchValues
     ) {
-        if ($columnAlias !== '' && is_array($searchValues) && !empty($searchValues)) {
+        if ('' !== $columnAlias && is_array($searchValues) && !empty($searchValues)) {
             /** @var BoolQuery $filterSubQueries */
             $filterSubQueries = new BoolQuery();
 
@@ -412,7 +414,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         string $columnAlias,
         string $searchValue
     ) {
-        if ($columnAlias !== '' && $searchValue !== '') {
+        if ('' !== $columnAlias && '' !== $searchValue && 'null' !== $searchValue) {
             /** @var Query\Regexp $regexQuery */
             $regexQuery = new Query\Regexp($columnAlias, '.*' . strtolower($searchValue) . '.*');
 
