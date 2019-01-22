@@ -185,7 +185,9 @@ abstract class AbstractDatatableQueryBuilder
         /** @var null|string $searchColumnGroup */
         $searchColumnGroup = $this->accessor->getValue($column, 'searchColumnGroup');
         if (null !== $searchColumnGroup && '' !== $searchColumnGroup) {
-            if (!\is_array($this->searchColumnGroups[$searchColumnGroup])) {
+            if (!isset($this->searchColumnGroups[$searchColumnGroup]) ||
+                !\is_array($this->searchColumnGroups[$searchColumnGroup])
+            ) {
                 $this->searchColumnGroups[$searchColumnGroup] = [];
             }
             if (!\in_array($key, $this->searchColumnGroups[$searchColumnGroup], true)) {
