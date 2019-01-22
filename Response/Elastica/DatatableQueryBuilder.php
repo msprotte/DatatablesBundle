@@ -576,14 +576,10 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $this->requestParams['length']
         );
 
-        $resultEntries = [];
-
-        /** @var HybridResult $result */
-        $resultEntries = $this->extractSourceFromResultset($results, $resultEntries);
-
-        $entries = $this->generateElasticaEntriesForRestults($results->getTotalHits(), $resultEntries);
-
-        return $entries;
+        return $this->generateElasticaEntriesForResults(
+            $results->getTotalHits(),
+            $this->extractSourceFromResultset($results)
+        );
     }
 
     /**
@@ -608,7 +604,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $resultEntries = $this->extractSourceFromResultset($partialResults, $resultEntries);
         }
 
-        return $this->generateElasticaEntriesForRestults($countAll, $resultEntries);
+        return $this->generateElasticaEntriesForResults($countAll, $resultEntries);
     }
 
     /**
@@ -665,7 +661,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return ElasticaEntries
      */
-    private function generateElasticaEntriesForRestults(int $countAll, array $resultEntries): ElasticaEntries
+    private function generateElasticaEntriesForResults(int $countAll, array $resultEntries): ElasticaEntries
     {
         /** @var ElasticaEntries $entries */
         $entries = new ElasticaEntries();
@@ -697,8 +693,10 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @return array
      */
-    private function extractSourceFromResultset(PartialResultsInterface $partialResults, array $resultEntries): array
-    {
+    private function extractSourceFromResultset(
+        PartialResultsInterface $partialResults,
+        array $resultEntries = []
+    ): array {
         foreach ($partialResults->toArray() as $item) {
             /** @var HybridResult $item */
             $resultEntries[] = $item->getResult()->getSource();
