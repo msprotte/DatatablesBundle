@@ -9,6 +9,7 @@ use Elastica\Query\Terms;
 use Elastica\Query\BoolQuery;
 use FOS\ElasticaBundle\Finder\PaginatedFinderInterface;
 use FOS\ElasticaBundle\HybridResult;
+use FOS\ElasticaBundle\Paginator\PartialResultsInterface;
 use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
@@ -28,6 +29,9 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /** @var array */
     protected $nestedPaths;
+
+    /** @var array */
+    protected $sourceFields;
 
     /**
      * @param BoolQuery $query
@@ -65,6 +69,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param string $columnAlias
      * @param string $path
+     *
      * @return $this
      */
     protected function addNestedPath(string $columnAlias, $path): self
@@ -82,6 +87,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param string $columnAlias
+     *
      * @return string|null
      */
     protected function getNestedPath(string $columnAlias)
@@ -111,23 +117,21 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             } elseif ($this->isSelectColumn($column)) {
                 $this->addSearchOrderColumn($column, $data);
             } else {
-                if ($this->accessor->isReadable($column, 'orderColumn') &&
-                    $this->isOrderableColumn($column)
-                ) {
-                    $orderColumn = $this->accessor->getValue($column, 'orderColumn');
-                    $this->addOrderColumn($column, $orderColumn);
-                } elseif ($this->isOrderableColumn($column)) {
+                if ($this->accessor->isReadable($column, 'orderColumn')) {
+                    $data = $this->accessor->getValue($column, 'orderColumn');
+                }
+
+                if ($this->isOrderableColumn($column)) {
                     $this->addOrderColumn($column, $data);
                 } else {
                     $this->addOrderColumn($column, null);
                 }
 
-                if ($this->accessor->isReadable($column, 'searchColumn') &&
-                    $this->isSearchableColumn($column)
-                ) {
-                    $searchColumn = $this->accessor->getValue($column, 'searchColumn');
-                    $this->addSearchColumn($column, $searchColumn);
-                } elseif ($this->isSearchableColumn($column)) {
+                if ($this->accessor->isReadable($column, 'searchColumn')) {
+                    $data = $this->accessor->getValue($column, 'searchColumn');
+                }
+
+                if ($this->isSearchableColumn($column)) {
                     $this->addSearchColumn($column, $data);
                 } else {
                     $this->addSearchColumn($column, null);
@@ -142,12 +146,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param BoolQuery $query
+     *
      * @return $this
      */
     protected function addSearchTerms(BoolQuery $query): self
     {
         // global filtering
-        if (isset($this->requestParams['search']) && '' != $this->requestParams['search']['value']) {
+        if (isset($this->requestParams['search']) && '' !== $this->requestParams['search']['value']) {
             /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
 
@@ -238,6 +243,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param BoolQuery $filterQueries
      * @param string $searchColumnGroup
      * @param int|string $searchValue
+     *
      * @return $this
      */
     protected function addColumnGroupSearchTerm(
@@ -265,6 +271,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         if (!empty($groupFilterQueries->getParams())) {
             $filterQueries->addMust($groupFilterQueries);
         }
+
         return $this;
     }
 
@@ -274,6 +281,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param ColumnInterface $column
      * @param string $columnAlias
      * @param int|string $searchValue
+     *
      * @return $this
      */
     protected function addColumnSearchTerm(
@@ -373,7 +381,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             /** @var BoolQuery $filterSubQueries */
             $filterSubQueries = new BoolQuery();
 
-            /** @var string $searchValue */
             foreach ($searchValues as $searchValue) {
                 $this->createStringFilterTerm(
                     $filterSubQueries,
@@ -436,6 +443,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      *
      * @param ColumnInterface $column
      * @param string $data
+     *
      * @return $this
      */
     protected function addSearchOrderColumn(ColumnInterface $column, $data): self
@@ -449,13 +457,14 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param ColumnInterface $column
      * @param string $data
+     *
      * @return $this
      */
     protected function addOrderColumn(ColumnInterface $column, $data): self
     {
         $col = null;
         if ($data !== null && $this->isOrderableColumn($column)) {
-            if ($column->getTypeOfField() == 'string') {
+            if ($column->getTypeOfField() === 'string') {
                 $col = $data . '.keyword';
             } else {
                 $col = $data;
@@ -474,11 +483,12 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param ColumnInterface $column
      * @param string $data
+     *
      * @return $this
      */
     protected function addSearchColumn(ColumnInterface $column, $data): self
     {
-        $col = $this->isSearchableColumn($column) ?  $data : null;
+        $col = $this->isSearchableColumn($column) ? $data : null;
         $col = str_replace('[,]', '', $col);
 
         $this->searchColumns[] = $col;
@@ -490,6 +500,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param Query $query
+     *
      * @return $this
      */
     protected function setOrderBy(Query $query): self
@@ -523,12 +534,12 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         return $this;
     }
 
-
     /**
      * @param bool $countQuery
+     *
      * @return Query
      */
-    protected function getQuery($countQuery=false): Query
+    protected function getQuery($countQuery = false): Query
     {
         /** @var Query $query */
         $query = new Query();
@@ -548,6 +559,10 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $this->setOrderBy($query);
         }
 
+        if (!empty($this->fields)) {
+            $query->setSource($this->fields);
+        }
+
         return $query;
     }
 
@@ -556,23 +571,44 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     public function execute(): ElasticaEntries
     {
-        $results = $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults(
+        $results = $this->getResultsForOffsetAndLength(
             $this->requestParams['start'],
             $this->requestParams['length']
         );
 
         $resultEntries = [];
-        /** @var HybridResult $result */
-        foreach ($results->toArray() as $result) {
-            $resultEntries[] = $result->getResult()->getSource();
-        }
 
-        /** @var ElasticaEntries $entries */
-        $entries = new ElasticaEntries();
-        $entries->setCount($results->getTotalHits());
-        $entries->setEntries($resultEntries);
+        /** @var HybridResult $result */
+        $resultEntries = $this->extractSourceFromResultset($results, $resultEntries);
+
+        $entries = $this->generateElasticaEntriesForRestults($results->getTotalHits(), $resultEntries);
 
         return $entries;
+    }
+
+    /**
+     * @param array|string[] $fields
+     *
+     * @return ElasticaEntries
+     */
+    public function getAllResultsForFields(array $fields): ElasticaEntries
+    {
+        $resultEntries = [];
+        $this->sourceFields = $fields;
+        $result = $this->getResultsForOffsetAndLength(0, 1);
+        $countAll = $result->getTotalHits();
+
+        $resultsPerStep = 100;
+
+        for ($i = 0; $i < $countAll / $resultsPerStep; $i++) {
+            $partialResults = $this->getResultsForOffsetAndLength(
+                $i * $resultsPerStep,
+                ($i + 1) * $resultsPerStep
+            );
+            $resultEntries = $this->extractSourceFromResultset($partialResults, $resultEntries);
+        }
+
+        return $this->generateElasticaEntriesForRestults($countAll, $resultEntries);
     }
 
     /**
@@ -595,6 +631,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param ColumnInterface $column
+     *
      * @return bool
      */
     private function hasCustomDql(ColumnInterface $column): bool
@@ -604,6 +641,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param ColumnInterface $column
+     *
      * @return bool
      */
     private function isSelectColumn(ColumnInterface $column): bool
@@ -613,10 +651,59 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param ColumnInterface $column
+     *
      * @return bool
      */
     private function isOrderableColumn(ColumnInterface $column): bool
     {
         return true === $this->accessor->getValue($column, 'orderable');
+    }
+
+    /**
+     * @param int $countAll
+     * @param array $resultEntries
+     *
+     * @return ElasticaEntries
+     */
+    private function generateElasticaEntriesForRestults(int $countAll, array $resultEntries): ElasticaEntries
+    {
+        /** @var ElasticaEntries $entries */
+        $entries = new ElasticaEntries();
+        $entries->setCount($countAll);
+        $entries->setEntries($resultEntries);
+
+        return $entries;
+    }
+
+    /**
+     * @param int $offset
+     * @param int $length
+     *
+     * @return PartialResultsInterface
+     */
+    private function getResultsForOffsetAndLength(
+        int $offset,
+        int $length
+    ): PartialResultsInterface {
+        return $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults(
+            $offset,
+            $length
+        );
+    }
+
+    /**
+     * @param PartialResultsInterface $partialResults
+     * @param array $resultEntries
+     *
+     * @return array
+     */
+    private function extractSourceFromResultset(PartialResultsInterface $partialResults, array $resultEntries): array
+    {
+        foreach ($partialResults->toArray() as $item) {
+            /** @var HybridResult $item */
+            $resultEntries[] = $item->getResult()->getSource();
+        }
+
+        return $resultEntries;
     }
 }

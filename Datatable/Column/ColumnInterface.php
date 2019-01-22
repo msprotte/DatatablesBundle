@@ -144,4 +144,11 @@ interface ColumnInterface
      * @return bool
      */
     public function isEditableContentRequired(array $row);
+
+    /**
+     * Get type of field.
+     *
+     * @return null|string
+     */
+    public function getTypeOfField();
 }
