@@ -294,6 +294,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         $searchValue
     ): self {
         switch ($column->getTypeOfField()) {
+            case 'boolean':
             case 'integer':
                 $this->createIntegerShouldTerm(
                     $filterQueries,
