@@ -117,22 +117,20 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             } elseif ($this->isSelectColumn($column)) {
                 $this->addSearchOrderColumn($column, $data);
             } else {
-                if ($this->accessor->isReadable($column, 'orderColumn')) {
-                    $data = $this->accessor->getValue($column, 'orderColumn');
-                }
-
-                if ($this->isOrderableColumn($column)) {
-                    $this->addOrderColumn($column, $data);
+                if ($this->accessor->isReadable($column, 'orderColumn') &&
+                    $this->isOrderableColumn($column)
+                ) {
+                    $orderColumn = $this->accessor->getValue($column, 'orderColumn');
+                    $this->addOrderColumn($column, $orderColumn);
                 } else {
                     $this->addOrderColumn($column, null);
                 }
 
-                if ($this->accessor->isReadable($column, 'searchColumn')) {
-                    $data = $this->accessor->getValue($column, 'searchColumn');
-                }
-
-                if ($this->isSearchableColumn($column)) {
-                    $this->addSearchColumn($column, $data);
+                if ($this->accessor->isReadable($column, 'searchColumn') &&
+                    $this->isSearchableColumn($column)
+                ) {
+                    $searchColumn = $this->accessor->getValue($column, 'searchColumn');
+                    $this->addSearchColumn($column, $searchColumn);
                 } else {
                     $this->addSearchColumn($column, null);
                 }
