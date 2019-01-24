@@ -11,6 +11,7 @@
 
 namespace Sg\DatatablesBundle\Datatable\Column;
 
+use Doctrine\DBAL\Types\Type as DoctrineType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\OptionsResolver\Options;
 use Exception;
@@ -36,6 +37,13 @@ class VirtualColumn extends Column
      */
     protected $searchColumn;
 
+    /**
+     * Order field type.
+     *
+     * @var null|string
+     */
+    protected $orderColumnTypeOfField;
+
     //-------------------------------------------------
     // Options
     //-------------------------------------------------
@@ -60,10 +68,13 @@ class VirtualColumn extends Column
             'searchable' => false,
             'order_column' => null,
             'search_column' => null,
+            'order_column_type_of_field' => null,
         ));
 
         $resolver->setAllowedTypes('order_column', array('null', 'string'));
         $resolver->setAllowedTypes('search_column', array('null', 'string'));
+
+        $resolver->setAllowedValues('order_column_type_of_field', array_merge(array(null), array_keys(DoctrineType::getTypesMap())));
 
         $resolver->setNormalizer('orderable', function (Options $options, $value) {
             if (null === $options['order_column'] && true === $value) {
@@ -154,5 +165,40 @@ class VirtualColumn extends Column
         $this->searchColumn = $searchColumn;
 
         return $this;
+    }
+
+
+    /**
+     * Get orderColumnTypeOfField
+     *
+     * @return string|null
+     */
+    public function getOrderColumnTypeOfField(): string
+    {
+        return $this->orderColumnTypeOfField;
+    }
+
+    /**
+     * Set orderColumnTypeOfField
+     *
+     * @param null|string $orderColumnTypeOfField
+     *
+     * @return VirtualColumn
+     */
+    public function setOrderColumnTypeOfField($orderColumnTypeOfField): self
+    {
+        $this->orderColumnTypeOfField = $orderColumnTypeOfField;
+
+        return $this;
+    }
+
+    /**
+     * Get typeOfField
+     *
+     * @return null|string
+     */
+    public function getTypeOfField(): string
+    {
+        return $this->getOrderColumnTypeOfField() ?? parent::getTypeOfField();
     }
 }
