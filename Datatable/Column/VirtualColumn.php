@@ -171,9 +171,9 @@ class VirtualColumn extends Column
     /**
      * Get orderColumnTypeOfField
      *
-     * @return string|null
+     * @return null|string
      */
-    public function getOrderColumnTypeOfField(): string
+    public function getOrderColumnTypeOfField()
     {
         return $this->orderColumnTypeOfField;
     }
@@ -197,7 +197,7 @@ class VirtualColumn extends Column
      *
      * @return null|string
      */
-    public function getTypeOfField(): string
+    public function getTypeOfField()
     {
         return $this->getOrderColumnTypeOfField() ?? parent::getTypeOfField();
     }
