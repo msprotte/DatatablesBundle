@@ -465,7 +465,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function addOrderColumn(ColumnInterface $column, $data): self
     {
-        /** @var \Sg\DatatablesBundle\Datatable\Column\Column $col */
         $col = null;
         if ($data !== null && $this->isOrderableColumn($column)) {
             $virtualColumnType = $this->getVirtualColumnOrderTypeOfField($column);
