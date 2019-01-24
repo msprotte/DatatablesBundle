@@ -10,7 +10,9 @@ use Elastica\Query\BoolQuery;
 use FOS\ElasticaBundle\Finder\PaginatedFinderInterface;
 use FOS\ElasticaBundle\HybridResult;
 use FOS\ElasticaBundle\Paginator\PartialResultsInterface;
+use Sg\DatatablesBundle\Datatable\Column\Column;
 use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
+use Sg\DatatablesBundle\Datatable\Column\VirtualColumn;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
 use Sg\DatatablesBundle\Datatable\Filter\FilterInterface;
@@ -463,9 +465,12 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function addOrderColumn(ColumnInterface $column, $data): self
     {
+        /** @var \Sg\DatatablesBundle\Datatable\Column\Column $col */
         $col = null;
         if ($data !== null && $this->isOrderableColumn($column)) {
-            if ($column->getTypeOfField() === 'string') {
+            $virtualColumnType = $this->getVirtualColumnOrderTypeOfField($column);
+
+            if (($column->getTypeOfField() === 'string' && $virtualColumnType === null) || $virtualColumnType === 'string') {
                 $col = $data . '.keyword';
             } else {
                 $col = $data;
@@ -704,5 +709,40 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         }
 
         return $resultEntries;
+    }
+
+    /**
+     * @param string $columnName
+     *
+     * @return Column|null
+     */
+    private function getColumnByDQL(string $dql)
+    {
+        foreach ($this->columns as $column) {
+            if ($column->getDql() === $dql) {
+               return $column;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param ColumnInterface $column
+     *
+     * @return string|null
+     */
+    private function getVirtualColumnOrderTypeOfField(ColumnInterface $column)
+    {
+        if ($column instanceof VirtualColumn) {
+            $orderColumn = $column->getOrderColumn();
+            $virtualColumn = $this->getColumnByDQL($orderColumn);
+
+            if ($virtualColumn !== null) {
+                return $virtualColumn->getTypeOfField();
+            }
+        }
+
+        return null;
     }
 }
