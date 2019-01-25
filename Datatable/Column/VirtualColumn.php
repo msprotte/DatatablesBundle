@@ -191,14 +191,4 @@ class VirtualColumn extends Column
 
         return $this;
     }
-
-    /**
-     * Get typeOfField
-     *
-     * @return null|string
-     */
-    public function getTypeOfField()
-    {
-        return $this->getOrderColumnTypeOfField() ?? parent::getTypeOfField();
-    }
 }
