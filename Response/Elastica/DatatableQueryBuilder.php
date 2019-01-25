@@ -294,11 +294,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         switch ($column->getTypeOfField()) {
             case 'boolean':
             case 'integer':
-                $this->createIntegerShouldTerm(
-                    $filterQueries,
-                    $columnAlias,
-                    (int)$searchValue
-                );
+                if (is_numeric($searchValue) || is_bool($searchValue)) {
+                    $this->createIntegerShouldTerm(
+                        $filterQueries,
+                        $columnAlias,
+                        (int)$searchValue
+                    );
+                }
                 break;
             case 'string':
                 /** @var FilterInterface $filter */
@@ -569,8 +571,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $this->setOrderBy($query);
         }
 
-        if (!empty($this->fields)) {
-            $query->setSource($this->fields);
+        if (\is_array($this->sourceFields) && !empty($this->sourceFields)) {
+            $query->setSource($this->sourceFields);
         }
 
         return $query;
