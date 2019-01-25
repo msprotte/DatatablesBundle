@@ -470,7 +470,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             if ($this->accessor->isReadable($column, 'orderColumnTypeOfField')) {
                 $typeOfField = $this
                     ->accessor
-                    ->getValue($column, 'orderColumnTypeOfField');
+                    ->getValue($column, 'orderColumnTypeOfField') ??
+                    $column->getTypeOfField();
             }
 
             if ($typeOfField === 'string') {
