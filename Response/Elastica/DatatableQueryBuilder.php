@@ -428,6 +428,8 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             /** @var Query\Match $fieldQuery */
             $fieldQuery = new Query\Match();
             $fieldQuery->setFieldQuery($columnAlias, $searchValue);
+            $fieldQuery->setFieldAnalyzer($columnAlias, 'whitespace');
+
             if ($conditionType === self::CONDITION_TYPE_MUST) {
                 $fieldQuery->setFieldOperator($columnAlias, $fieldQuery::OPERATOR_AND);
             }
