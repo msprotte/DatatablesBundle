@@ -180,7 +180,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
             }
 
-            if (!empty($filterQueries->getParams())) {
+            if (!empty($filterQueries->toArray())) {
                 $query->addFilter($filterQueries);
             }
         }
@@ -233,7 +233,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
             }
 
-            if (!empty($filterQueries->getParams())) {
+            if (!empty($filterQueries->toArray())) {
                 $query->addFilter($filterQueries);
             }
         }
@@ -270,7 +270,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             );
         }
 
-        if (!empty($groupFilterQueries->getParams())) {
+        if (!empty($groupFilterQueries->toArray())) {
             $filterQueries->addMust($groupFilterQueries);
         }
 
@@ -293,15 +293,14 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         string $columnAlias,
         $searchValue
     ): self {
-        /** @var null|AbstractQuery $filterSubQueries */
-        $filterSubQueries = null;
+        /** @var null|AbstractQuery $filterSubQuery */
+        $filterSubQuery = null;
 
         switch ($column->getTypeOfField()) {
             case 'boolean':
             case 'integer':
                 if (is_numeric($searchValue) || is_bool($searchValue)) {
-                    /** @var null|AbstractQuery $filterSubQueries */
-                    $filterSubQueries = $this->createIntegerFilterTerm(
+                    $filterSubQuery = $this->createIntegerFilterTerm(
                         $columnAlias,
                         (int)$searchValue
                     );
@@ -318,15 +317,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
 
                 if (is_array($searchValues) && count($searchValues) > 1) {
-                    /** @var null|AbstractQuery $filterSubQueries */
-                    $filterSubQueries = $this->createStringMultiFilterTerm(
+                    $filterSubQuery = $this->createStringMultiFilterTerm(
                         $columnAlias,
                         $conditionType,
                         (array)$searchValues
                     );
                 } else {
-                    /** @var null|AbstractQuery $filterSubQueries */
-                    $filterSubQueries = $this->createStringFilterTerm(
+                    $filterSubQuery = $this->createStringFilterTerm(
                         $columnAlias,
                         $conditionType,
                         (string)$searchValue
@@ -337,11 +334,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 break;
         }
 
-        if (null !== $filterSubQueries && !empty($filterSubQueries->getParams())) {
+        if (null !== $filterSubQuery) {
             if (self::CONDITION_TYPE_MUST === $conditionType) {
-                $filterQueries->addMust($filterSubQueries);
+                $filterQueries->addMust($filterSubQuery);
             } elseif (self::CONDITION_TYPE_SHOULD === $conditionType) {
-                $filterQueries->addShould($filterSubQueries);
+                $filterQueries->addShould($filterSubQuery);
             }
         }
 
@@ -402,11 +399,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $conditionType,
                     (string)$searchValue
                 );
-                if (null !== $filterSubQuery && !empty($filterSubQuery->getParams())) {
+                if (null !== $filterSubQuery) {
                     $filterQueries->addShould($filterSubQuery);
                 }
             }
-            if (!empty($filterQueries->getParams())) {
+            if (!empty($filterQueries->toArray())) {
                 return $filterQueries;
             }
         }
@@ -429,7 +426,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             $fieldQuery = new Query\Match();
             $fieldQuery->setFieldQuery($columnAlias, $searchValue);
             $fieldQuery->setFieldAnalyzer($columnAlias, 'whitespace');
-
             if ($conditionType === self::CONDITION_TYPE_MUST) {
                 $fieldQuery->setFieldOperator($columnAlias, $fieldQuery::OPERATOR_AND);
             }
