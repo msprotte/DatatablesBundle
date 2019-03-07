@@ -11,7 +11,6 @@ use Elastica\Query\AbstractQuery;
 use FOS\ElasticaBundle\Finder\PaginatedFinderInterface;
 use FOS\ElasticaBundle\HybridResult;
 use FOS\ElasticaBundle\Paginator\PartialResultsInterface;
-use Sg\DatatablesBundle\Datatable\Column\AbstractColumn;
 use Sg\DatatablesBundle\Datatable\Column\ColumnInterface;
 use Sg\DatatablesBundle\Model\ModelDefinitionInterface;
 use Sg\DatatablesBundle\Response\AbstractDatatableQueryBuilder;
@@ -282,7 +281,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $conditionType
      * @param ColumnInterface $column
      * @param string $columnAlias
-     * @param int|string $searchValue
+     * @param int|string|bool $searchValue
      *
      * @return $this
      */
@@ -348,6 +347,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     /**
      * @param string $columnAlias
      * @param int $searchValue
+     *
      * @return null|AbstractQuery
      */
     protected function createIntegerFilterTerm(
@@ -371,10 +371,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 $nested->setQuery($boolQuery);
 
                 return $nested;
-            } else {
-                return $integerTerm;
             }
+
+            return $integerTerm;
         }
+
         return null;
     }
 
@@ -382,6 +383,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $columnAlias
      * @param string $conditionType
      * @param array $searchValues
+     *
      * @return null|AbstractQuery
      */
     protected function createStringMultiFilterTerm(
@@ -407,6 +409,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 return $filterQueries;
             }
         }
+
         return null;
     }
 
@@ -414,6 +417,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $columnAlias
      * @param string $conditionType
      * @param string $searchValue
+     *
      * @return null|AbstractQuery
      */
     protected function createStringFilterTerm(
@@ -437,11 +441,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 $nested = new Nested();
                 $nested->setPath($nestedPath);
                 $nested->setQuery($fieldQuery);
+
                 return $nested;
-            } else {
-                return $fieldQuery;
             }
+
+            return $fieldQuery;
         }
+
         return null;
     }
 
@@ -474,13 +480,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
             if ($this->accessor->isReadable($column, 'orderColumnTypeOfField')) {
                 $typeOfField = $this
-                    ->accessor
-                    ->getValue($column, 'orderColumnTypeOfField') ??
+                        ->accessor
+                        ->getValue($column, 'orderColumnTypeOfField') ??
                     $column->getTypeOfField();
             }
 
             if ($typeOfField === 'string') {
-                $col = $data . '.keyword';
+                $col = $data . '.' . $this->getSortFieldSuffix();
             } else {
                 $col = $data;
             }
@@ -493,6 +499,14 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         $this->addNestedPath($col, $data);
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    protected function getSortFieldSuffix(): string
+    {
+        return 'keyword';
     }
 
     /**
