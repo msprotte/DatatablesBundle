@@ -22,6 +22,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     const CONDITION_TYPE_SHOULD = 'should';
     const CONDITION_TYPE_MUST = 'must';
 
+    const QUERY_TYPE_TERMS = 'terms';
+    const QUERY_TYPE_MATCH = 'match';
+    const QUERY_TYPE_EXACT_MATCH = 'exact_match';
+    const QUERY_TYPE_REGEXP = 'regexp';
+
     /** @var PaginatedFinderInterface */
     protected $paginatedFinder;
 
@@ -144,16 +149,37 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     }
 
     /**
+     * @param mixed $query
+     * @return bool
+     */
+    protected function isQueryValid($query): bool
+    {
+        if (!$query instanceof AbstractQuery) {
+            return false;
+        }
+
+        if (empty($query->toArray())) {
+            return false;
+        }
+
+        if (\is_object($query->getParams())) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * @param BoolQuery $query
-     *
      * @return $this
      */
-    protected function addSearchTerms(BoolQuery $query): self
+    protected function addGlobalFilteringSearchTerms(BoolQuery $query): self
     {
-        // global filtering
         if (isset($this->requestParams['search']) && '' !== $this->requestParams['search']['value']) {
             /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
+
+            $searchValue = $this->requestParams['search']['value'];
 
             /**
              * @var int|string $key
@@ -167,7 +193,12 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                         continue;
                     }
 
-                    $searchValue = $this->requestParams['search']['value'];
+                    /** @var FilterInterface $filter */
+                    $filter = $this->accessor->getValue($column, 'filter');
+
+                    if ($filter instanceof SelectFilter) {
+                        continue;
+                    }
 
                     $this->addColumnSearchTerm(
                         $filterQueries,
@@ -179,12 +210,21 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
             }
 
-            if (!empty($filterQueries->toArray())) {
+            if ($this->isQueryValid($filterQueries)) {
+                $filterQueries->setMinimumShouldMatch(1);
                 $query->addFilter($filterQueries);
             }
         }
 
-        // individual filtering
+        return $this;
+    }
+
+    /**
+     * @param BoolQuery $query
+     * @return $this
+     */
+    protected function addIndividualFilteringSearchTerms(BoolQuery $query): self
+    {
         if ($this->isIndividualFiltering()) {
             /** @var BoolQuery $filterQueries */
             $filterQueries = new BoolQuery();
@@ -213,6 +253,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     if ('' !== $searchValue && 'null' !== $searchValue) {
                         /** @var null|string $hasSearchColumnGroup */
                         $searchColumnGroup = $this->getColumnSearchColumnGroup($column);
+
                         if ('' !== $searchColumnGroup) {
                             $this->addColumnGroupSearchTerm(
                                 $filterQueries,
@@ -232,10 +273,23 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
             }
 
-            if (!empty($filterQueries->toArray())) {
+            if ($this->isQueryValid($filterQueries)) {
                 $query->addFilter($filterQueries);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @param BoolQuery $query
+     *
+     * @return $this
+     */
+    protected function addSearchTerms(BoolQuery $query): self
+    {
+        $this->addGlobalFilteringSearchTerms($query);
+        $this->addIndividualFilteringSearchTerms($query);
 
         return $this;
     }
@@ -257,19 +311,16 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
         /** @var int|string $key */
         foreach ($this->searchColumnGroups[$searchColumnGroup] as $key) {
-            $column = $this->columns[$key];
-            $columnAlias = $this->searchColumns[$key];
-
             $this->addColumnSearchTerm(
                 $groupFilterQueries,
                 self::CONDITION_TYPE_SHOULD,
-                $column,
-                $columnAlias,
+                $this->columns[$key],
+                $this->searchColumns[$key],
                 $searchValue
             );
         }
 
-        if (!empty($groupFilterQueries->toArray())) {
+        if ($this->isQueryValid($groupFilterQueries)) {
             $filterQueries->addMust($groupFilterQueries);
         }
 
@@ -306,24 +357,35 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 }
                 break;
             case 'string':
+                /** @var null|array $searchValues */
+                $searchValues = null;
+
+                /** @var string $queryType */
+                $queryType = self::QUERY_TYPE_MATCH;
+
                 /** @var FilterInterface $filter */
                 $filter = $this->accessor->getValue($column, 'filter');
 
-                if ($filter instanceof SelectFilter && true === $filter->isMultiple()) {
-                    $searchValues = explode(',', $searchValue);
-                } else {
-                    $searchValues = null;
+                if ($filter instanceof SelectFilter) {
+                    $queryType = self::QUERY_TYPE_EXACT_MATCH;
+
+                    if (true === $filter->isMultiple()) {
+                        $conditionType = self::CONDITION_TYPE_SHOULD;
+                        $searchValues = explode(',', $searchValue);
+                    }
                 }
 
                 if (is_array($searchValues) && count($searchValues) > 1) {
                     $filterSubQuery = $this->createStringMultiFilterTerm(
                         $columnAlias,
+                        $queryType,
                         $conditionType,
                         (array)$searchValues
                     );
                 } else {
                     $filterSubQuery = $this->createStringFilterTerm(
                         $columnAlias,
+                        $queryType,
                         $conditionType,
                         (string)$searchValue
                     );
@@ -333,7 +395,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                 break;
         }
 
-        if (null !== $filterSubQuery) {
+        if ($this->isQueryValid($filterSubQuery)) {
             if (self::CONDITION_TYPE_MUST === $conditionType) {
                 $filterQueries->addMust($filterSubQuery);
             } elseif (self::CONDITION_TYPE_SHOULD === $conditionType) {
@@ -355,25 +417,25 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         int $searchValue
     ) {
         if ('' !== $columnAlias) {
-            /** @var Terms $integerTerm */
-            $integerTerm = new Terms();
-            $integerTerm->setTerms($columnAlias, [$searchValue]);
+            $integerTerm = $this->createFilterTerm($columnAlias, $searchValue);
 
-            /** @var string|null $nestedPath */
-            $nestedPath = $this->getNestedPath($columnAlias);
-            if ($nestedPath !== null) {
-                /** @var Nested $nested */
-                $nested = new Nested();
-                $nested->setPath($nestedPath);
-                /** @var BoolQuery $boolQuery */
-                $boolQuery = new BoolQuery();
-                $boolQuery->addMust($integerTerm);
-                $nested->setQuery($boolQuery);
+            if ($this->isQueryValid($integerTerm)) {
+                /** @var string|null $nestedPath */
+                $nestedPath = $this->getNestedPath($columnAlias);
+                if (null !== $nestedPath) {
+                    /** @var Nested $nested */
+                    $nested = new Nested();
+                    $nested->setPath($nestedPath);
+                    /** @var BoolQuery $boolQuery */
+                    $boolQuery = new BoolQuery();
+                    $boolQuery->addMust($integerTerm);
+                    $nested->setQuery($boolQuery);
 
-                return $nested;
+                    return $nested;
+                }
+
+                return $integerTerm;
             }
-
-            return $integerTerm;
         }
 
         return null;
@@ -381,6 +443,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param string $columnAlias
+     * @param string $queryType
      * @param string $conditionType
      * @param array $searchValues
      *
@@ -388,6 +451,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function createStringMultiFilterTerm(
         string $columnAlias,
+        string $queryType,
         string $conditionType,
         array $searchValues
     ) {
@@ -398,14 +462,16 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             foreach ($searchValues as $searchValue) {
                 $filterSubQuery = $this->createStringFilterTerm(
                     $columnAlias,
+                    $queryType,
                     $conditionType,
                     (string)$searchValue
                 );
-                if (null !== $filterSubQuery) {
+                if ($this->isQueryValid($filterSubQuery)) {
                     $filterQueries->addShould($filterSubQuery);
                 }
             }
-            if (!empty($filterQueries->toArray())) {
+
+            if ($this->isQueryValid($filterQueries)) {
                 return $filterQueries;
             }
         }
@@ -415,6 +481,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param string $columnAlias
+     * @param string $queryType
      * @param string $conditionType
      * @param string $searchValue
      *
@@ -422,30 +489,114 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     protected function createStringFilterTerm(
         string $columnAlias,
+        string $queryType,
         string $conditionType,
         string $searchValue
     ) {
+        $searchValue = trim($searchValue);
         if ('' !== $columnAlias && '' !== $searchValue && 'null' !== $searchValue) {
-            /** @var Query\Match $fieldQuery */
-            $fieldQuery = new Query\Match();
-            $fieldQuery->setFieldQuery($columnAlias, $searchValue);
-            $fieldQuery->setFieldAnalyzer($columnAlias, 'standard');
+
+            if (self::QUERY_TYPE_MATCH === $queryType) {
+                $fieldQuery = $this->createFilterMatchTerm($columnAlias, $searchValue, $conditionType);
+            } elseif (self::QUERY_TYPE_EXACT_MATCH === $queryType) {
+                $fieldQuery = $this->createFilterExactMatchTerm($columnAlias, $searchValue, $conditionType);
+            } elseif (self::QUERY_TYPE_REGEXP === $queryType) {
+                $fieldQuery = $this->createFilterRegexpTerm($columnAlias, $searchValue, $conditionType);
+            } else {
+                $fieldQuery = $this->createFilterTerm($columnAlias, $searchValue, $conditionType);
+            }
+
+            if ($this->isQueryValid($fieldQuery)) {
+                /** @var string|null $nestedPath */
+                $nestedPath = $this->getNestedPath($columnAlias);
+                if (null !== $nestedPath) {
+                    /** @var Nested $nested */
+                    $nested = new Nested();
+                    $nested->setPath($nestedPath);
+                    $nested->setQuery($fieldQuery);
+
+                    return $nested;
+                }
+
+                return $fieldQuery;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $columnAlias
+     * @param string|int $searchValue
+     * @param string $conditionType
+     * @return null|AbstractQuery
+     */
+    protected function createFilterTerm(string $columnAlias, $searchValue, string $conditionType = null)
+    {
+        if ('' !== $columnAlias) {
+            /** @var Query\Term() $query */
+            $query = new Query\Term();
+            $query->setTerm($columnAlias, $searchValue);
+
+            return $query;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $columnAlias
+     * @param string|int $searchValue
+     * @param string $conditionType
+     * @return null|AbstractQuery
+     */
+    protected function createFilterMatchTerm(string $columnAlias, $searchValue, string $conditionType = null)
+    {
+        if ('' !== $columnAlias) {
+            /** @var Query\Match $query */
+            $query = new Query\Match();
+            $query->setFieldQuery($columnAlias, $searchValue);
+            $query->setFieldMinimumShouldMatch($columnAlias, 1);
             if ($conditionType === self::CONDITION_TYPE_MUST) {
-                $fieldQuery->setFieldOperator($columnAlias, $fieldQuery::OPERATOR_AND);
+                $query->setFieldOperator($columnAlias, Query\Match::OPERATOR_AND);
             }
 
-            /** @var string|null $nestedPath */
-            $nestedPath = $this->getNestedPath($columnAlias);
-            if ($nestedPath !== null) {
-                /** @var Nested $nested */
-                $nested = new Nested();
-                $nested->setPath($nestedPath);
-                $nested->setQuery($fieldQuery);
+            return $query;
+        }
 
-                return $nested;
-            }
+        return null;
+    }
 
-            return $fieldQuery;
+    /**
+     * @param string $columnAlias
+     * @param string|int $searchValue
+     * @param string $conditionType
+     * @return null|AbstractQuery
+     */
+    protected function createFilterExactMatchTerm(string $columnAlias, $searchValue, string $conditionType = null)
+    {
+        $query = $this->createFilterMatchTerm($columnAlias, $searchValue, $conditionType);
+
+        if ($this->isQueryValid($query)) {
+            $query->setFieldMinimumShouldMatch($columnAlias, '100%');
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param string $columnAlias
+     * @param string|int $searchValue
+     * @param string $conditionType
+     * @return null|AbstractQuery
+     */
+    protected function createFilterRegexpTerm(string $columnAlias, $searchValue, string $conditionType = null)
+    {
+        if ('' !== $columnAlias) {
+            /** @var Query\Regexp $query */
+            $query = new Query\Regexp($columnAlias, '.*' . $searchValue . '.*');
+
+            return $query;
         }
 
         return null;
