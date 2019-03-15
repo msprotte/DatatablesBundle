@@ -150,6 +150,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param mixed $query
+     *
      * @return bool
      */
     protected function isQueryValid($query): bool
@@ -171,6 +172,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param BoolQuery $query
+     *
      * @return $this
      */
     protected function addGlobalFilteringSearchTerms(BoolQuery $query): self
@@ -211,7 +213,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             }
 
             if ($this->isQueryValid($filterQueries)) {
-                $filterQueries->setMinimumShouldMatch(1);
                 $query->addFilter($filterQueries);
             }
         }
@@ -221,6 +222,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
 
     /**
      * @param BoolQuery $query
+     *
      * @return $this
      */
     protected function addIndividualFilteringSearchTerms(BoolQuery $query): self
@@ -529,6 +531,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $columnAlias
      * @param string|int $searchValue
      * @param string $conditionType
+     *
      * @return null|AbstractQuery
      */
     protected function createFilterTerm(string $columnAlias, $searchValue, string $conditionType = null)
@@ -548,6 +551,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $columnAlias
      * @param string|int $searchValue
      * @param string $conditionType
+     *
      * @return null|AbstractQuery
      */
     protected function createFilterMatchTerm(string $columnAlias, $searchValue, string $conditionType = null)
@@ -571,6 +575,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $columnAlias
      * @param string|int $searchValue
      * @param string $conditionType
+     *
      * @return null|AbstractQuery
      */
     protected function createFilterExactMatchTerm(string $columnAlias, $searchValue, string $conditionType = null)
@@ -588,13 +593,14 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      * @param string $columnAlias
      * @param string|int $searchValue
      * @param string $conditionType
+     *
      * @return null|AbstractQuery
      */
     protected function createFilterRegexpTerm(string $columnAlias, $searchValue, string $conditionType = null)
     {
         if ('' !== $columnAlias) {
             /** @var Query\Regexp $query */
-            $query = new Query\Regexp($columnAlias, '.*' . $searchValue . '.*');
+            $query = new Query\Regexp($columnAlias . '.raw', '.*' . $searchValue . '.*');
 
             return $query;
         }
