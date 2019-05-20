@@ -503,9 +503,9 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
             } elseif (self::QUERY_TYPE_EXACT_MATCH === $queryType) {
                 $fieldQuery = $this->createFilterExactMatchTerm($columnAlias, $searchValue, $conditionType);
             } elseif (self::QUERY_TYPE_REGEXP === $queryType) {
-                $fieldQuery = $this->createFilterRegexpTerm($columnAlias, $searchValue, $conditionType);
+                $fieldQuery = $this->createFilterRegexpTerm($columnAlias . '.raw', $searchValue, $conditionType);
             } else {
-                $fieldQuery = $this->createFilterTerm($columnAlias, $searchValue, $conditionType);
+                $fieldQuery = $this->createFilterTerm($columnAlias . '.raw', $searchValue, $conditionType);
             }
 
             if ($this->isQueryValid($fieldQuery)) {
@@ -600,7 +600,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     {
         if ('' !== $columnAlias) {
             /** @var Query\Regexp $query */
-            $query = new Query\Regexp($columnAlias . '.raw', '.*' . $searchValue . '.*');
+            $query = new Query\Regexp($columnAlias, '.*' . $searchValue . '.*');
 
             return $query;
         }
