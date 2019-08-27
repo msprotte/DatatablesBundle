@@ -253,7 +253,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $searchValue = $this->requestParams['columns'][$key]['search']['value'];
 
                     if ('' !== $searchValue && 'null' !== $searchValue) {
-                        /** @var null|string $hasSearchColumnGroup */
+                        /** @var string $searchColumnGroup */
                         $searchColumnGroup = $this->getColumnSearchColumnGroup($column);
 
                         if ('' !== $searchColumnGroup) {
@@ -372,7 +372,6 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $queryType = self::QUERY_TYPE_EXACT_MATCH;
 
                     if (true === $filter->isMultiple()) {
-                        $conditionType = self::CONDITION_TYPE_SHOULD;
                         $searchValues = explode(',', $searchValue);
                     }
                 }
@@ -381,7 +380,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
                     $filterSubQuery = $this->createStringMultiFilterTerm(
                         $columnAlias,
                         $queryType,
-                        $conditionType,
+                        self::CONDITION_TYPE_SHOULD,
                         (array)$searchValues
                     );
                 } else {
