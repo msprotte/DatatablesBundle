@@ -756,7 +756,7 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
      */
     public function execute(): ElasticaEntries
     {
-        $results = $this->getResultsForOffsetAndLength(
+        $results = $this->getHybridResultsForOffsetAndLength(
             $this->requestParams['start'],
             $this->requestParams['length']
         );
@@ -776,13 +776,13 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
     {
         $resultEntries = [];
         $this->sourceFields = $fields;
-        $result = $this->getResultsForOffsetAndLength(0, 1);
+        $result = $this->getRawResultsForOffsetAndLength(0, 1);
         $countAll = $result->getTotalHits();
 
         $resultsPerStep = 100;
 
         for ($i = 0; $i < $countAll / $resultsPerStep; $i++) {
-            $partialResults = $this->getResultsForOffsetAndLength(
+            $partialResults = $this->getRawResultsForOffsetAndLength(
                 $i * $resultsPerStep,
                 ($i + 1) * $resultsPerStep
             );
@@ -866,10 +866,33 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         int $offset,
         int $length
     ): PartialResultsInterface {
-        return $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults(
-            $offset,
-            $length
-        );
+        return $this->paginatedFinder->createPaginatorAdapter($this->getQuery())->getResults($offset, $length);
+    }
+
+    /**
+     * @param int $offset
+     * @param int $length
+     *
+     * @return PartialResultsInterface
+     */
+    private function getHybridResultsForOffsetAndLength(
+        int $offset,
+        int $length
+    ): PartialResultsInterface {
+        return $this->paginatedFinder->createHybridPaginatorAdapter($this->getQuery())->getResults($offset, $length);
+    }
+
+    /**
+     * @param int $offset
+     * @param int $length
+     *
+     * @return PartialResultsInterface
+     */
+    private function getRawResultsForOffsetAndLength(
+        int $offset,
+        int $length
+    ): PartialResultsInterface {
+        return $this->paginatedFinder->createRawPaginatorAdapter($this->getQuery())->getResults($offset, $length);
     }
 
     /**
@@ -883,8 +906,11 @@ abstract class DatatableQueryBuilder extends AbstractDatatableQueryBuilder
         array $resultEntries = []
     ): array {
         foreach ($partialResults->toArray() as $item) {
-            /** @var HybridResult $item */
-            $resultEntries[] = $item->getResult()->getSource();
+            if ($item instanceof HybridResult) {
+                $resultEntries[] = $item->getResult()->getSource();
+            } elseif (is_array($item)) {
+                $resultEntries[] = $item;
+            }
         }
 
         return $resultEntries;
